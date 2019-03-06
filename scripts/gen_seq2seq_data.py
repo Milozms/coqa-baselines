@@ -79,12 +79,13 @@ if __name__ == '__main__':
                 for i, (q, a) in enumerate(history[-context_len:]):
                     d = context_len - i
                     full_str += ' <Q{}> '.format(d) + q + ' <A{}> '.format(d) + a
-            full_str += ' <Q> ' + question_str
+            # full_str += ' <Q> ' + question_str
             if args.lower:
                 full_str = full_str.lower()
                 answer_str = answer_str.lower()
+                question_str = question_str.lower()
             f_src.write(full_str + '\n')
-            f_tgt.write(answer_str + '\n')
+            f_tgt.write(question_str + '\n')
             history.append((question_str, answer_str))
 
     f_src.close()
