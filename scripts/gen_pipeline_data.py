@@ -132,7 +132,10 @@ if __name__ == '__main__':
         for qid, (question, answer) in enumerate(zip(datum['questions'], datum['answers'])):
             assert question['turn_id'] == answer['turn_id']
             idx = question['turn_id']
-            next_answer = datum['answers'][qid + 1]  # note: idx start from 1
+            if qid >= len(datum['questions']) - 1:
+                break
+            next_answer = datum['answers'][qid + 1]
+            next_question = datum['questions'][qid + 1]
             _qas = {'turn_id': idx,
                     'question': question['input_text'],
                     'answer': next_answer['span_text']}
@@ -155,7 +158,7 @@ if __name__ == '__main__':
             s, e = _qas['answer_span']
             span_str = ' '.join(_datum['annotated_context']['word'][s: e + 1]).lower()
             f_src.write('{} || {}\n'.format(get_str(_qas['annotated_question'], lower=True), span_str))
-            f_tgt.write('{}\n'.format(get_str(_qas['annotated_answer'], lower=True)))
+            f_tgt.write('{}\n'.format(get_str(process(next_question['input_text']), lower=True)))
         data.append(_datum)
     f_src.close()
     f_tgt.close()
