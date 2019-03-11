@@ -127,39 +127,29 @@ if __name__ == '__main__':
                         idx = ex['turn_id']
                         if idx not in additional_answers:
                             additional_answers[idx] = []
-                        additional_answers[idx].append(ex['input_text'])
+                        additional_answers[idx].append(ex['span_text'])
 
-        for question, answer in zip(datum['questions'], datum['answers']):
+        for qid, (question, answer) in enumerate(zip(datum['questions'], datum['answers'])):
             assert question['turn_id'] == answer['turn_id']
             idx = question['turn_id']
+            next_answer = datum['answers'][qid + 1]  # note: idx start from 1
             _qas = {'turn_id': idx,
                     'question': question['input_text'],
-                    'answer': answer['input_text']}
+                    'answer': next_answer['span_text']}
             if idx in additional_answers:
                 _qas['additional_answers'] = additional_answers[idx]
 
             _qas['annotated_question'] = process(question['input_text'])
-            _qas['annotated_answer'] = process(answer['input_text'])
-            _qas['answer_span_start'] = answer['span_start']
-            _qas['answer_span_end'] = answer['span_end']
+            _qas['annotated_answer'] = process(next_answer['span_text'])
 
-            start = answer['span_start']
-            end = answer['span_end']
-            chosen_text = _datum['context'][start: end].lower()
-            while len(chosen_text) > 0 and chosen_text[0] in string.whitespace:
-                chosen_text = chosen_text[1:]
-                start += 1
-            while len(chosen_text) > 0 and chosen_text[-1] in string.whitespace:
-                chosen_text = chosen_text[:-1]
-                end -= 1
-            input_text = _qas['answer'].strip().lower()
-            if input_text in chosen_text:
-                i = chosen_text.find(input_text)
-                _qas['answer_span'] = find_span(_datum['annotated_context']['offsets'],
-                                                start + i, start + i + len(input_text))
-            else:
-                # Answer not appear: use rationale instead
-                _qas['answer_span'] = find_span(_datum['annotated_context']['offsets'], start, end)
+
+            # _qas['answer_span_start'] = answer['span_start']
+            # _qas['answer_span_end'] = answer['span_end']
+
+            start = next_answer['span_start']
+            end = next_answer['span_end']
+            # get rationale of next question
+            _qas['answer_span'] = find_span(_datum['annotated_context']['offsets'], start, end)
             _datum['qas'].append(_qas)
 
             s, e = _qas['answer_span']
