@@ -104,6 +104,13 @@ def find_span_with_gt(context, offsets, ground_truth):
 
 
 def find_span(offsets, start, end):
+    '''
+    Convert char-level indexes to word-level indexes
+    :param offsets: The indexes of start and end character of every words
+    :param start:
+    :param end:
+    :return:
+    '''
     start_index = end_index = -1
     for i, offset in enumerate(offsets):
         if (start_index < 0) or (start >= offset[0]):
@@ -124,6 +131,7 @@ if __name__ == '__main__':
 
     data = []
     start_time = time.time()
+
     for i, datum in enumerate(dataset['data']):
         if i % 10 == 0:
             print('processing %d / %d (used_time = %.2fs)...' %
@@ -151,7 +159,7 @@ if __name__ == '__main__':
             _qas['annotated_question'] = process(question['input_text'])
             _qas['annotated_answer'] = process(answer['input_text'])
             _qas['answer_span_start'] = answer['span_start']
-            _qas['answer_span_end'] = answer['span_end']
+            _qas['answer_span_end'] = answer['span_end']     # char-level indexes!!!
 
             start = answer['span_start']
             end = answer['span_end']
@@ -172,6 +180,8 @@ if __name__ == '__main__':
                 # ﻿we select the span which has the highest lexical overlap (F1 score) with the original answer as the gold answer.
                 _qas['answer_span'] = find_span_with_gt(_datum['context'],
                                                         _datum['annotated_context']['offsets'], input_text)
+            # word-level span
+            _qas['span'] = find_span(_datum['annotated_context']['offsets'], start, end)
             _datum['qas'].append(_qas)
         data.append(_datum)
 
