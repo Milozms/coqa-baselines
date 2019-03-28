@@ -158,6 +158,7 @@ if __name__ == '__main__':
                 _qas['answer_span'] = find_span(_datum['annotated_context']['offsets'],
                                                 start + i, start + i + len(input_text))
             else:
+                # Answer not appear: use rationale instead
                 _qas['answer_span'] = find_span(_datum['annotated_context']['offsets'], start, end)
             _datum['qas'].append(_qas)
 

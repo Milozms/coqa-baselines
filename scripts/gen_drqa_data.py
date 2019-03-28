@@ -33,6 +33,11 @@ def _str(s):
 
 
 def process(text):
+    '''
+    Annotate the indexes of start and end character of every words
+    :param text:
+    :return: word: list of words; offsets: list of (start, end);
+    '''
     paragraph = nlp.annotate(text, properties={
                              'annotators': 'tokenize, ssplit',
                              'outputFormat': 'json',
@@ -161,19 +166,21 @@ if __name__ == '__main__':
 
             start = answer['span_start']
             end = answer['span_end']
-            chosen_text = _datum['context'][start: end].lower()
+            chosen_text = _datum['context'][start: end].lower()  # chosen text: rationale
             while len(chosen_text) > 0 and chosen_text[0] in string.whitespace:
                 chosen_text = chosen_text[1:]
                 start += 1
             while len(chosen_text) > 0 and chosen_text[-1] in string.whitespace:
                 chosen_text = chosen_text[:-1]
                 end -= 1
-            input_text = _qas['answer'].strip().lower()
+            input_text = _qas['answer'].strip().lower()  # ground truth answer
             if input_text in chosen_text:
+                # ﻿If the answer appears multiple times in the story we use rationale to find the correct one.
                 i = chosen_text.find(input_text)
                 _qas['answer_span'] = find_span(_datum['annotated_context']['offsets'],
                                                 start + i, start + i + len(input_text))
             else:
+                # ﻿we select the span which has the highest lexical overlap (F1 score) with the original answer as the gold answer.
                 _qas['answer_span'] = find_span_with_gt(_datum['context'],
                                                         _datum['annotated_context']['offsets'], input_text)
             _datum['qas'].append(_qas)
