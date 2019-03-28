@@ -44,7 +44,9 @@ class CoQADataset(Dataset):
         dataset = read_json(filename)
         for paragraph in dataset['data']:
             history = []
-            for qas in paragraph['qas']:
+            for qid, qas in enumerate(paragraph['qas']):
+                if qid >= len(paragraph['qas']) - 1:
+                    break
                 qas['paragraph_id'] = len(self.paragraphs)
                 temp = []
                 n_history = len(history) if config['n_history'] < 0 else min(config['n_history'], len(history))
@@ -53,12 +55,13 @@ class CoQADataset(Dataset):
                         d = n_history - i
                         temp.append('<Q{}>'.format(d))
                         temp.extend(q)
-                        temp.append('<A{}>'.format(d))
-                        temp.extend(a)
+                        # temp.append('<A{}>'.format(d))
+                        # temp.extend(a)
                 temp.append('<Q>')
                 temp.extend(qas['annotated_question']['word'])
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
                 qas['annotated_question']['word'] = temp
+                qas['next_span'] = paragraph[qid+1]['span']
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
                 paragraph_lens.append(len(paragraph['annotated_context']['word']))
@@ -89,12 +92,37 @@ class CoQADataset(Dataset):
                   'question': question,
                   'answers': answers,
                   'evidence': paragraph['annotated_context'],
-                  'targets': qas['answer_span']}
+                  # 'targets': qas['answer_span'],
+                  'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
+                  'next_targets': qas['next_span']}
 
         if self.config['predict_raw_text']:
             sample['raw_evidence'] = paragraph['context']
         return sample
 
+def get_marks_for_paragraph(qas, paragraph, config):
+    '''
+    0: not asked
+    1: being asked by current question
+    2: asked by any question in history (if not 1)
+    :param qas:
+    :param paragraph:
+    :param config:
+    :return:
+    '''
+    n_current = config['n_current']
+    result = np.zeros(len(paragraph['annotated_context']['word']), dtype=np.uint8)
+    qid = qas['turn_id'] - 1     # turn_id start from 1
+    first_current_qid = qid - n_current + 1
+    # history questions
+    for history_qas in paragraph['qas'][:first_current_qid]:
+        s, e = history_qas['span']
+        result[s:e] = 2
+    # current questions
+    for cur_qas in paragraph['qas'][first_current_qid:qid+1]:
+        s, e = cur_qas['span']
+        result[s:e] = 1
+    return result
 
 ################################################################################
 # Read & Write Helper Functions #
@@ -261,3 +289,4 @@ def featurize(question, document, feature_dict):
             if f_ner in feature_dict:
                 features[i][feature_dict[f_ner]] = 1.0
     return features
+
