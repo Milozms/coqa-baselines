@@ -84,15 +84,15 @@ class CoQADataset(Dataset):
         qas = self.examples[idx]
         paragraph = self.paragraphs[qas['paragraph_id']]
         question = qas['annotated_question']
-        answers = [qas['answer']]
+        # answers = [qas['answer']]
 
         sample = {'id': (paragraph['id'], qas['turn_id']),
                   'question': question,
-                  'answers': answers,
+                  # 'answers': answers,
                   'evidence': paragraph['annotated_context'],
                   # 'targets': qas['answer_span'],
                   'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
-                  'next_targets': qas['next_span']}
+                  'next_span': qas['next_span']}
 
         if self.config['predict_raw_text']:
             sample['raw_evidence'] = paragraph['context']
@@ -191,8 +191,10 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
 
         # featurize evidence document:
         sanitized_batch['features'].append(featurize(ex['question'], ex['evidence'], feature_dict))
-        sanitized_batch['targets'].append(ex['targets'])
-        sanitized_batch['answers'].append(ex['answers'])
+        # sanitized_batch['targets'].append(ex['targets'])
+        sanitized_batch['next_span'].append(ex['next_span'])
+        # sanitized_batch['answers'].append(ex['answers'])
+        sanitized_batch['evidence_marks'].append(ex['evidence_marks'])
         if 'id' in ex:
             sanitized_batch['id'].append(ex['id'])
     return sanitized_batch
@@ -239,19 +241,19 @@ def vectorize_input(batch, config, training=True, device=None):
     # Part 3: Target representations
     if config['sum_loss']:  # For sum_loss "targets" acts as a mask rather than indices.
         targets = torch.ByteTensor(batch_size, max_d_len, 2).fill_(0)
-        for i, _targets in enumerate(batch['targets']):
+        for i, _targets in enumerate(batch['next_span']):  # changed current span to next span
             for s, e in _targets:
                 targets[i, s, 0] = 1
                 targets[i, e, 1] = 1
     else:
         targets = torch.LongTensor(batch_size, 2)
-        for i, _target in enumerate(batch['targets']):
+        for i, _target in enumerate(batch['next_span']):   # changed current span to next span
             targets[i][0] = _target[0]
             targets[i][1] = _target[1]
 
     torch.set_grad_enabled(training)
     example = {'batch_size': batch_size,
-               'answers': batch['answers'],
+               # 'answers': batch['answers'],
                'xq': xq.to(device) if device else xq,
                'xq_mask': xq_mask.to(device) if device else xq_mask,
                'xd': xd.to(device) if device else xd,
