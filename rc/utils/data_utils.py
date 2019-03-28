@@ -85,8 +85,6 @@ class CoQADataset(Dataset):
         paragraph = self.paragraphs[qas['paragraph_id']]
         question = qas['annotated_question']
         answers = [qas['answer']]
-        if 'additional_answers' in qas:
-            answers = answers + qas['additional_answers']
 
         sample = {'id': (paragraph['id'], qas['turn_id']),
                   'question': question,
