@@ -40,7 +40,9 @@ def get_args():
     parser.add_argument('--cuda_id', type=int, default=-1, help='Specify a CUDA id.')
     parser.add_argument('--debug', type=str2bool, default=False)
 
-    parser.add_argument('--n_history', type=int, default=0)
+    parser.add_argument('--n_history', type=int, default=2)
+    parser.add_argument('--n_current', type=int, default=1,
+                        help='Number of questions whose rationale will be marked current.')
     parser.add_argument('--cased', type=str2bool, default=True, help='Cased or uncased version.')
     parser.add_argument('--min_freq', type=int, default=20)
     parser.add_argument('--top_vocab', type=int, default=100000)
