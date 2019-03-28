@@ -241,13 +241,15 @@ def vectorize_input(batch, config, training=True, device=None):
     # Part 3: Target representations
     if config['sum_loss']:  # For sum_loss "targets" acts as a mask rather than indices.
         targets = torch.ByteTensor(batch_size, max_d_len, 2).fill_(0)
-        for i, _targets in enumerate(batch['next_span']):  # changed current span to next span
+        # for i, _targets in enumerate(batch['targets']):
+        for i, _targets in enumerate(batch['next_span']):
             for s, e in _targets:
                 targets[i, s, 0] = 1
                 targets[i, e, 1] = 1
     else:
         targets = torch.LongTensor(batch_size, 2)
-        for i, _target in enumerate(batch['next_span']):   # changed current span to next span
+        # for i, _target in enumerate(batch['targets']):
+        for i, _target in enumerate(batch['next_span']):
             targets[i][0] = _target[0]
             targets[i][1] = _target[1]
 
