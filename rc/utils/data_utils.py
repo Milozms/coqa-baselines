@@ -61,7 +61,7 @@ class CoQADataset(Dataset):
                 temp.extend(qas['annotated_question']['word'])
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
                 qas['annotated_question']['word'] = temp
-                qas['next_span'] = paragraph[qid+1]['span']
+                qas['next_span'] = paragraph['qas'][qid+1]['span']
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
                 paragraph_lens.append(len(paragraph['annotated_context']['word']))
