@@ -40,22 +40,22 @@ def process(text):
     :return: word: list of words; offsets: list of (start, end);
     '''
     paragraph = nlp.annotate(text, properties={
-                             'annotators': 'tokenize, ssplit',
+                             'annotators': 'tokenize, ssplit, lemma, pos, ner',
                              'outputFormat': 'json',
                              'ssplit.newlineIsSentenceBreak': 'two'})
 
     output = {'word': [],
-              # 'lemma': [],
-              # 'pos': [],
-              # 'ner': [],
+              'lemma': [],
+              'pos': [],
+              'ner': [],
               'offsets': []}
 
     for sent in paragraph['sentences']:
         for token in sent['tokens']:
             output['word'].append(_str(token['word']))
-            # output['lemma'].append(_str(token['lemma']))
-            # output['pos'].append(token['pos'])
-            # output['ner'].append(token['ner'])
+            output['lemma'].append(_str(token['lemma']))
+            output['pos'].append(token['pos'])
+            output['ner'].append(token['ner'])
             output['offsets'].append((token['characterOffsetBegin'], token['characterOffsetEnd']))
     return output
 
