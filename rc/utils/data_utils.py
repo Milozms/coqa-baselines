@@ -190,7 +190,8 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
             sanitized_batch['evidence_text'].append(evidence)
 
         # featurize evidence document:
-        sanitized_batch['features'].append(featurize(ex['question'], ex['evidence'], feature_dict))
+        sanitized_batch['features'].append(featurize(ex['question'], ex['evidence'], feature_dict,
+                                                     ex['evidence_marks'], config))
         # sanitized_batch['targets'].append(ex['targets'])
         sanitized_batch['next_span'].append(ex['next_span'])
         # sanitized_batch['answers'].append(ex['answers'])
@@ -271,7 +272,7 @@ def vectorize_input(batch, config, training=True, device=None):
     return example
 
 
-def featurize(question, document, feature_dict):
+def featurize(question, document, feature_dict, doc_marks, config):
     doc_len = len(document['word'])
     features = torch.zeros(doc_len, len(feature_dict))
     q_cased_words = set([w for w in question['word']])
@@ -290,5 +291,9 @@ def featurize(question, document, feature_dict):
             f_ner = 'f_ner={}'.format(document['ner'][i])
             if f_ner in feature_dict:
                 features[i][feature_dict[f_ner]] = 1.0
+        if config['doc_mark_as_feature']:
+            f_mark = 'mark={}'.format(doc_marks[i])
+            features[i][feature_dict[f_mark]] = 1.0
+
     return features
 
