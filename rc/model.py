@@ -169,7 +169,9 @@ class Model(object):
 
         if (not update) or self.config['predict_train']:
             predictions, spans = self.extract_predictions(ex, score_s, score_e)
-            output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['answers'])
+            # output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['answers'])
+            golden_span = self.extract_golden(ex)
+            output['f1'], output['em'] = self.evaluate_predictions(predictions, golden_span)
             if out_predictions:
                 output['predictions'] = predictions
                 output['spans'] = spans
@@ -220,6 +222,19 @@ class Model(object):
         f1_score = compute_eval_metric('f1', predictions, answers)
         em_score = compute_eval_metric('em', predictions, answers)
         return f1_score, em_score
+
+    def extract_golden(self, ex):
+        for i in range(ex['batch_size']):
+            s_idx = ex['next_span'][i][0]
+            e_idx = ex['next_span'][i][1]
+            if self.config['predict_raw_text']:
+                raw_text = ex['raw_evidence_text'][i]
+                offsets = ex['offsets'][i]
+                return raw_text[offsets[s_idx][0]: offsets[e_idx][1]]
+            else:
+                text = ex['evidence_text'][i]
+                return ' '.join(text[s_idx: e_idx + 1])
+
 
     def save(self, dirname):
         params = {
