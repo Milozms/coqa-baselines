@@ -224,16 +224,19 @@ class Model(object):
         return f1_score, em_score
 
     def extract_golden(self, ex):
+        goldens = []
         for i in range(ex['batch_size']):
             s_idx = ex['next_span'][i][0]
             e_idx = ex['next_span'][i][1]
             if self.config['predict_raw_text']:
                 raw_text = ex['raw_evidence_text'][i]
                 offsets = ex['offsets'][i]
-                return raw_text[offsets[s_idx][0]: offsets[e_idx][1]]
+                result = raw_text[offsets[s_idx][0]: offsets[e_idx][1]]
             else:
                 text = ex['evidence_text'][i]
-                return ' '.join(text[s_idx: e_idx + 1])
+                result = ' '.join(text[s_idx: e_idx + 1])
+            goldens.append(result)
+        return goldens
 
 
     def save(self, dirname):
