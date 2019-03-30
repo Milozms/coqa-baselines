@@ -68,7 +68,7 @@ class WordModel(object):
         self.word_vecs = np.random.rand(self.vocab_size, self.embed_size) * 0.2 - 0.1
         for word in self.vocab:
             idx = self.vocab[word]
-            if word in self._model.vocab:
+            if self._model is not None and word in self._model.vocab:
                 self.word_vecs[idx] = self._model.word_vec(word)
 
     def set_model(self, filename, embed_type='glove'):
