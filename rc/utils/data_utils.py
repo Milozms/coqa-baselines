@@ -252,11 +252,7 @@ def vectorize_input(batch, config, training=True, device=None):
                 targets[i, s, 0] = 1
                 targets[i, e, 1] = 1
     else:
-        targets = torch.LongTensor(batch_size, 2)
-        # for i, _target in enumerate(batch['targets']):
-        for i, _target in enumerate(batch['next_span']):
-            targets[i][0] = _target[0]
-            targets[i][1] = _target[1]
+        targets = next_span
 
     torch.set_grad_enabled(training)
     example = {'batch_size': batch_size,
