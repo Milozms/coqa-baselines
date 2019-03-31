@@ -302,11 +302,11 @@ def featurize(question, document, feature_dict, doc_marks, config):
             features[i][feature_dict['f_qem_cased']] = 1.0
         if 'f_qem_uncased' in feature_dict and d_word.lower() in q_uncased_words:
             features[i][feature_dict['f_qem_uncased']] = 1.0
-        if 'pos' in document:
+        if 'pos' in document and i < len(document['pos']):
             f_pos = 'f_pos={}'.format(document['pos'][i])
             if f_pos in feature_dict:
                 features[i][feature_dict[f_pos]] = 1.0
-        if 'ner' in document:
+        if 'ner' in document and i < len(document['ner']):
             f_ner = 'f_ner={}'.format(document['ner'][i])
             if f_ner in feature_dict:
                 features[i][feature_dict[f_ner]] = 1.0
