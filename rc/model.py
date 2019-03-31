@@ -170,8 +170,9 @@ class Model(object):
         if (not update) or self.config['predict_train']:
             predictions, spans = self.extract_predictions(ex, score_s, score_e)
             # output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['answers'])
-            golden_span = self.extract_golden(ex)
-            output['f1'], output['em'] = self.evaluate_predictions(predictions, golden_span)
+            # golden_span = self.extract_golden(ex)
+            # output['f1'], output['em'] = self.evaluate_predictions(predictions, golden_span)
+            output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['next_golden_span'])
             if out_predictions:
                 output['predictions'] = predictions
                 output['spans'] = spans
@@ -224,6 +225,9 @@ class Model(object):
         return f1_score, em_score
 
     def extract_golden(self, ex):
+        '''
+        disabled
+        '''
         goldens = []
         for i in range(ex['batch_size']):
             s_idx = ex['next_span'][i][0]

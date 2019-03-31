@@ -62,6 +62,7 @@ class CoQADataset(Dataset):
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
                 qas['annotated_question']['word'] = temp
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
+                qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
@@ -94,11 +95,24 @@ class CoQADataset(Dataset):
                   # 'targets': qas['answer_span'],
                   # 'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
                   'evidence_marks': qas['paragraph_marks'],
+                  'next_golden_span': qas['next_golden_span'],
                   'next_span': qas['next_span']}
 
         if self.config['predict_raw_text']:
             sample['raw_evidence'] = paragraph['context']
         return sample
+
+def extract_next_golden_span(paragraph, qas, config):
+    s_idx = qas['next_span'][0]
+    e_idx = qas['next_span'][1]
+    if config['predict_raw_text']:
+        raw_text = paragraph['context']
+        offsets = paragraph['annotated_context']['offsets']
+        result = raw_text[offsets[s_idx][0]: offsets[e_idx][1]]
+    else:
+        text = paragraph['annotated_context']['word']
+        result = ' '.join(text[s_idx: e_idx + 1])
+    return result
 
 def get_marks_for_paragraph(qas, paragraph, config):
     '''
@@ -197,6 +211,7 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
         # sanitized_batch['targets'].append(ex['targets'])
         sanitized_batch['next_span'].append(ex['next_span'])
         # sanitized_batch['answers'].append(ex['answers'])
+        sanitized_batch['next_golden_span'].append(ex['next_golden_span'])
         sanitized_batch['evidence_marks'].append(ex['evidence_marks'])
         if 'id' in ex:
             sanitized_batch['id'].append(ex['id'])
@@ -259,6 +274,7 @@ def vectorize_input(batch, config, training=True, device=None):
     torch.set_grad_enabled(training)
     example = {'batch_size': batch_size,
                # 'answers': batch['answers'],
+               'next_golden_span': batch['next_golden_span'],
                'xq': xq.to(device) if device else xq,
                'xq_mask': xq_mask.to(device) if device else xq_mask,
                'xd': xd.to(device) if device else xd,
