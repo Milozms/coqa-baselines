@@ -62,6 +62,7 @@ class CoQADataset(Dataset):
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
                 qas['annotated_question']['word'] = temp
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
+                qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
                 paragraph_lens.append(len(paragraph['annotated_context']['word']))
@@ -91,7 +92,8 @@ class CoQADataset(Dataset):
                   # 'answers': answers,
                   'evidence': paragraph['annotated_context'],
                   # 'targets': qas['answer_span'],
-                  'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
+                  # 'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
+                  'evidence_marks': qas['paragraph_marks'],
                   'next_span': qas['next_span']}
 
         if self.config['predict_raw_text']:
