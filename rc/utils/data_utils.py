@@ -95,7 +95,7 @@ class CoQADataset(Dataset):
                   # 'targets': qas['answer_span'],
                   # 'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
                   'evidence_marks': qas['paragraph_marks'],
-                  'next_golden_span': qas['next_golden_span'],
+                  'next_golden_span': [qas['next_golden_span']],
                   'next_span': qas['next_span']}
 
         if self.config['predict_raw_text']:
