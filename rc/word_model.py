@@ -20,7 +20,7 @@ class GloveModel(object):
     def __init__(self, filename):
         self.word_vecs = {}
         self.vocab = []
-        with open(filename, 'r') as input_file:
+        with open(filename, 'r', encoding='utf-8') as input_file:
             for line in input_file.readlines():
                 splitLine = line.split(' ')
                 w = splitLine[0]
