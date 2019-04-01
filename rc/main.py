@@ -76,9 +76,10 @@ def get_args():
     group.add_argument('--dropout_rnn_output', type=str2bool, default=True, help='Whether to dropout last layer.')
     group.add_argument('--variational_dropout', type=str2bool, default=True, help='Set variational dropout on/off.')
     group.add_argument('--word_dropout', type=str2bool, default=False, help='Whether to dropout word.')
-    group.add_argument('--doc_mark_as_feature', type=bool, default=True)
-    group.add_argument('--doc_mark_as_multiplier_input', type=bool, default=False)
-    group.add_argument('--doc_mark_as_multiplier_output', type=bool, default=False)
+    group.add_argument('--doc_mark_as_feature', type=str2bool, default=True)
+    group.add_argument('--input_with_answer', type=str2bool, default=False)
+    group.add_argument('--doc_mark_as_multiplier_input', type=str2bool, default=False)
+    group.add_argument('--doc_mark_as_multiplier_output', type=str2bool, default=False)
 
 
     # Optimizer

@@ -55,10 +55,14 @@ class CoQADataset(Dataset):
                         d = n_history - i
                         temp.append('<Q{}>'.format(d))
                         temp.extend(q)
-                        # temp.append('<A{}>'.format(d))
-                        # temp.extend(a)
+                        if config['input_with_answer']:
+                            temp.append('<A{}>'.format(d))
+                            temp.extend(a)
                 temp.append('<Q>')
                 temp.extend(qas['annotated_question']['word'])
+                if config['input_with_answer']:
+                    temp.append('<A>')
+                    temp.extend(qas['annotated_answer']['word'])
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
                 qas['annotated_question']['word'] = temp
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
