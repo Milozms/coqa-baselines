@@ -51,19 +51,27 @@ class CoQADataset(Dataset):
                 temp = []
                 n_history = len(history) if config['n_history'] < 0 else min(config['n_history'], len(history))
                 if n_history > 0:
-                    for i, (q, a) in enumerate(history[-n_history:]):
+                    for i, (q, a, r) in enumerate(history[-n_history:]):
                         d = n_history - i
                         temp.append('<Q{}>'.format(d))
                         temp.extend(q)
-                        if config['input_with_answer']:
+                        if config['input_with_rationale']:
+                            temp.append('<A{}>'.format(d))
+                            temp.extend(r)
+                        elif config['input_with_answer']:
                             temp.append('<A{}>'.format(d))
                             temp.extend(a)
                 temp.append('<Q>')
                 temp.extend(qas['annotated_question']['word'])
-                if config['input_with_answer']:
+                rationale = extract_annotated_rationale(paragraph, qas)
+                if config['input_with_rationale']:
+                    temp.append('<A>')
+                    temp.extend(rationale)
+                elif config['input_with_answer']:
                     temp.append('<A>')
                     temp.extend(qas['annotated_answer']['word'])
-                history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
+                history.append((qas['annotated_question']['word'], qas['annotated_answer']['word'],
+                                rationale))
                 qas['annotated_question']['word'] = temp
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
@@ -106,6 +114,7 @@ class CoQADataset(Dataset):
             sample['raw_evidence'] = paragraph['context']
         return sample
 
+
 def extract_next_golden_span(paragraph, qas, config):
     s_idx = qas['next_span'][0]
     e_idx = qas['next_span'][1]
@@ -117,6 +126,15 @@ def extract_next_golden_span(paragraph, qas, config):
         text = paragraph['annotated_context']['word']
         result = ' '.join(text[s_idx: e_idx + 1])
     return result
+
+
+def extract_annotated_rationale(paragraph, qas):
+    s_idx = qas['span'][0]
+    e_idx = qas['span'][1]
+    text = paragraph['annotated_context']['word']
+    result = text[s_idx: e_idx + 1]
+    return result
+
 
 def get_marks_for_paragraph(qas, paragraph, config):
     '''

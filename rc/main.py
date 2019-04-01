@@ -79,6 +79,7 @@ def get_args():
     group.add_argument('--word_dropout', type=str2bool, default=False, help='Whether to dropout word.')
     group.add_argument('--doc_mark_as_feature', type=str2bool, default=True)
     group.add_argument('--input_with_answer', type=str2bool, default=False)
+    group.add_argument('--input_with_rationale', type=str2bool, default=False)
     group.add_argument('--doc_mark_in_pointer_computation', type=str2bool, default=False)
     group.add_argument('--doc_mark_as_multiplier_input', type=str2bool, default=False)
     group.add_argument('--doc_mark_as_multiplier_output', type=str2bool, default=False)
