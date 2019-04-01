@@ -252,10 +252,15 @@ def vectorize_input(batch, config, training=True, device=None):
     xd = torch.LongTensor(batch_size, max_d_len).fill_(0)
     xd_mask = torch.ByteTensor(batch_size, max_d_len).fill_(1)
     xd_f = torch.zeros(batch_size, max_d_len, config['num_features']) if config['num_features'] > 0 else None
+    # document marks (one-hot)
+    xd_marks = torch.FloatTensor(batch_size, max_d_len, 3).fill_(0)
 
     # 2(a): fill up DrQA section variables
     for i, d in enumerate(batch['evidence']):
         xd[i, :len(d)].copy_(torch.LongTensor(d))
+        d_mark = batch['evidence_marks'][i]
+        for j, m in enumerate(d_mark):
+            xd_marks[i, j, m] = 1.0
         xd_mask[i, :len(d)].fill_(0)
         if config['num_features'] > 0:
             xd_f[i, :len(d)].copy_(batch['features'][i])
@@ -284,6 +289,7 @@ def vectorize_input(batch, config, training=True, device=None):
                'xd': xd.to(device) if device else xd,
                'xd_mask': xd_mask.to(device) if device else xd_mask,
                'xd_f': xd_f.to(device) if device else xd_f,
+               'xd_marks': xd_marks.to(device) if device else xd_marks,
                'targets': targets.to(device) if device else targets,
 			   'next_span': next_span.to(device) if device else next_span}
 

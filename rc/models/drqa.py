@@ -86,6 +86,8 @@ class DrQA(nn.Module):
             doc_hidden_size,
             question_hidden_size,
         )
+        if config['doc_mark_in_pointer_computation']:
+            doc_hidden_size += 3
         q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
         self.end_attn = BilinearSeqAttn(
             doc_hidden_size,
@@ -111,6 +113,7 @@ class DrQA(nn.Module):
         xd_emb = dropout(xd_emb, self.config['dropout_emb'], shared_axes=shared_axes, training=self.training)
         xd_mask = ex['xd_mask']
         xq_mask = ex['xq_mask']
+        xd_marks = ex['xd_marks']
 
         # Add attention-weighted question representation
         if self.config['use_qemb']:
@@ -145,6 +148,10 @@ class DrQA(nn.Module):
         elif self.config['question_merge'] == 'self_attn':
             q_merge_weights = self.self_attn(question_hiddens.contiguous(), xq_mask)
         question_hidden = weighted_avg(question_hiddens, q_merge_weights)
+
+        # Add document mark as feature in pointer computation
+        if self.config['doc_mark_in_pointer_computation']:
+            doc_hiddens = torch.cat([doc_hiddens, xd_marks], 1)
 
         # Predict start and end positions
         start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)
