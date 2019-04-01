@@ -62,7 +62,8 @@ def get_args():
     group.add_argument('--f_qem', type=str2bool, default=True, help='Add exact match question feature to embedding.')
     group.add_argument('--f_pos', type=str2bool, default=False, help='Add POS feature to embedding.')
     group.add_argument('--f_ner', type=str2bool, default=False, help='Add NER feature to embedding.')
-    group.add_argument('--sum_loss', type=str2bool, default=False, help="Set the type of loss.")
+    group.add_argument('--sum_loss', type=str2bool, default=False, help="Set the type of loss. "
+                                                                        "Used for summing loss over multiple answers.")
     group.add_argument('--doc_self_attn', type=str2bool, default=False,
                        help="Set whether to use self attention on the document.")
     group.add_argument('--resize_rnn_input', type=str2bool, default=False,
@@ -78,6 +79,7 @@ def get_args():
     group.add_argument('--word_dropout', type=str2bool, default=False, help='Whether to dropout word.')
     group.add_argument('--doc_mark_as_feature', type=str2bool, default=True)
     group.add_argument('--input_with_answer', type=str2bool, default=False)
+    group.add_argument('--doc_mark_in_pointer_computation', type=str2bool, default=False)
     group.add_argument('--doc_mark_as_multiplier_input', type=str2bool, default=False)
     group.add_argument('--doc_mark_as_multiplier_output', type=str2bool, default=False)
 
