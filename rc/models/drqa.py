@@ -81,13 +81,15 @@ class DrQA(nn.Module):
         if config['question_merge'] == 'self_attn':
             self.self_attn = LinearSeqAttn(question_hidden_size)
 
+        # Add document mark as feature in pointer computation
+        if config['doc_mark_in_pointer_computation']:
+            doc_hidden_size += 3
+
         # Bilinear attention for span start/end
         self.start_attn = BilinearSeqAttn(
             doc_hidden_size,
             question_hidden_size,
         )
-        if config['doc_mark_in_pointer_computation']:
-            doc_hidden_size += 3
         q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
         self.end_attn = BilinearSeqAttn(
             doc_hidden_size,
@@ -151,7 +153,7 @@ class DrQA(nn.Module):
 
         # Add document mark as feature in pointer computation
         if self.config['doc_mark_in_pointer_computation']:
-            doc_hiddens = torch.cat([doc_hiddens, xd_marks], 1)
+            doc_hiddens = torch.cat([doc_hiddens, xd_marks], 2)
 
         # Predict start and end positions
         start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)
