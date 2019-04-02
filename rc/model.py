@@ -202,7 +202,7 @@ class Model(object):
         return predictions, spans
 
     def _scores_to_text(self, text, score_s, score_e):
-        max_len = self.config['max_answer_len'] or score_s.size(1)
+        max_len = self.config['max_answer_len'] or score_s.size(0)
         scores = torch.ger(score_s.squeeze(), score_e.squeeze())
         scores.triu_().tril_(max_len - 1)
         scores = scores.cpu().detach().numpy()
@@ -210,7 +210,7 @@ class Model(object):
         return ' '.join(text[s_idx: e_idx + 1]), (int(s_idx), int(e_idx))
 
     def _scores_to_raw_text(self, raw_text, offsets, score_s, score_e):
-        max_len = self.config['max_answer_len'] or score_s.size(1)
+        max_len = self.config['max_answer_len'] or score_s.size(0)
         scores = torch.ger(score_s.squeeze(), score_e.squeeze())
         scores.triu_().tril_(max_len - 1)
         scores = scores.cpu().detach().numpy()
