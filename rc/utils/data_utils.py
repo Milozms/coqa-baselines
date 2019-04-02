@@ -38,6 +38,7 @@ class CoQADataset(Dataset):
         self.config = config
         paragraph_lens = []
         question_lens = []
+        rationale_lens = []
         self.paragraphs = []
         self.examples = []
         self.vocab = Counter()
@@ -79,6 +80,7 @@ class CoQADataset(Dataset):
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
                 paragraph_lens.append(len(paragraph['annotated_context']['word']))
+                rationale_lens.append(len(rationale))
                 for w in qas['annotated_question']['word']:
                     self.vocab[w] += 1
                 for w in paragraph['annotated_context']['word']:
@@ -89,6 +91,7 @@ class CoQADataset(Dataset):
         print('Load {} paragraphs, {} examples.'.format(len(self.paragraphs), len(self.examples)))
         print('Paragraph length: avg = %.1f, max = %d' % (np.average(paragraph_lens), np.max(paragraph_lens)))
         print('Question length: avg = %.1f, max = %d' % (np.average(question_lens), np.max(question_lens)))
+        print('Rationale length: avg = %.1f, max = %d' % (np.average(rationale_lens), np.max(rationale_lens)))
         timer.finish()
 
     def __len__(self):
