@@ -162,7 +162,7 @@ class DrQA(nn.Module):
         if self.config['doc_mark_in_pointer_computation']:
             doc_hiddens = torch.cat([doc_hiddens, xd_marks_emb], 2)
 
-        d_merge_weights = self.final_attn(doc_hiddens, question_hidden, xd_mask)
+        d_merge_weights = self.final_attn(doc_hiddens, question_hidden, xd_mask).exp()
         doc_hidden = weighted_avg(doc_hiddens, d_merge_weights)
 
         logits = self.flinear(doc_hidden)
