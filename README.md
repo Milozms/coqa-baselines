@@ -98,8 +98,8 @@ Generate the input files for the reading comprehension (extractive question answ
 ## The pipeline model
 ### Preprocessing
 ```bash
-  python scripts/gen_pipeline_data.py --data_file data/coqa-train-v1.0.json --output_file1 data/coqa.train.pipeline.json --output_file2 data/seq2seq-train-pipeline
-  python scripts/gen_pipeline_data.py --data_file data/coqa-dev-v1.0.json --output_file1 data/coqa.dev.pipeline.json --output_file2 data/seq2seq-dev-pipeline
+  python3 scripts/gen_pipeline_data.py --data_file data/coqa-train-v1.0.json --output_file1 data_pip/coqa.train.pipeline.json --output_file2 data_pip/seq2seq-train-pipeline
+  python3 scripts/gen_pipeline_data.py --data_file data/coqa-dev-v1.0.json --output_file1 data_pip/coqa.dev.pipeline.json --output_file2 data_pip/seq2seq-dev-pipeline
   python seq2seq/preprocess.py -train_src data/seq2seq-train-pipeline-src.txt -train_tgt data/seq2seq-train-pipeline-tgt.txt -valid_src data/seq2seq-dev-pipeline-src.txt -valid_tgt data/seq2seq-dev-pipeline-tgt.txt -save_data data/seq2seq-pipeline -lower -dynamic_dict -src_seq_length 10000
   PYTHONPATH=seq2seq python seq2seq/tools/embeddings_to_torch.py -emb_file_enc wordvecs/glove.42B.300d.txt -emb_file_dec wordvecs/glove.42B.300d.txt -dict_file data/seq2seq-pipeline.vocab.pt -output_file data/seq2seq-pipeline.embed
 ```
@@ -107,7 +107,7 @@ Generate the input files for the reading comprehension (extractive question answ
 ### Training
 `n_history` can be changed to {0, 1, 2, ..} or -1.
 ```bash
-  python rc/main.py --trainset data/coqa.train.pipeline.json --devset data/coqa.dev.pipeline.json --n_history 2 --dir pipeline_models --embed_file wordvecs/glove.840B.300d.txt --predict_raw_text n
+  CUDA_VISIBLE_DEVICES=1 python3 rc/main.py --trainset data_pip/coqa.train.pipeline.json --devset data_pip/coqa.dev.pipeline.json --n_history 2 --dir pipeline_models1 --embed_file wordvecs/glove.840B.300d.txt --predict_raw_text n
   python seq2seq/train.py -data data/seq2seq-pipeline -save_model pipeline_models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq-pipeline.embed.enc.pt -pre_word_vecs_dec data/seq2seq-pipeline.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
 ```
 
