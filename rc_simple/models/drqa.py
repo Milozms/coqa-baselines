@@ -89,16 +89,15 @@ class DrQA(nn.Module):
         if config['doc_mark_in_pointer_computation']:
             doc_hidden_size += self.config['doc_mark_size']
 
-        # Bilinear attention for span start/end
-        self.start_attn = BilinearSeqAttn(
+        # Document merging
+        self.final_attn = BilinearSeqAttn(
             doc_hidden_size,
             question_hidden_size,
         )
-        q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
-        self.end_attn = BilinearSeqAttn(
-            doc_hidden_size,
-            q_rep_size,
-        )
+
+        # Classification
+        self.num_classes = 2
+        self.flinear = nn.Linear(doc_hidden_size, self.num_classes)
 
     def forward(self, ex):
         """Inputs:
@@ -163,12 +162,10 @@ class DrQA(nn.Module):
         if self.config['doc_mark_in_pointer_computation']:
             doc_hiddens = torch.cat([doc_hiddens, xd_marks_emb], 2)
 
-        # Predict start and end positions
-        start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)
-        if self.config['span_dependency']:
-            question_hidden = torch.cat([question_hidden, (doc_hiddens * start_scores.exp().unsqueeze(2)).sum(1)], 1)
-        end_scores = self.end_attn(doc_hiddens, question_hidden, xd_mask)
+        d_merge_weights = self.final_attn(doc_hiddens, question_hidden, xd_mask)
+        doc_hidden = weighted_avg(doc_hiddens, d_merge_weights)
 
-        return {'score_s': start_scores,
-                'score_e': end_scores,
+        logits = self.flinear(doc_hidden)
+
+        return {'logits': logits,
                 'targets': ex['targets']}

@@ -142,7 +142,7 @@ class Model(object):
         self.network.train(update)
         # Run forward
         res = self.network(ex)
-        score_s, score_e = res['score_s'], res['score_e']
+        logits = res['logits']
 
         output = {
             'f1': 0.0,
@@ -152,7 +152,7 @@ class Model(object):
         # Loss cannot be computed for test-time as we may not have targets
         if update:
             # Compute loss and accuracies
-            loss = self.compute_span_loss(score_s, score_e, res['targets'])
+            loss = F.cross_entropy(logits, ex['label'])
             output['loss'] = loss.item()
 
             # Clear gradients and run backward
@@ -166,14 +166,9 @@ class Model(object):
             self.optimizer.step()
 
         if (not update) or self.config['predict_train']:
-            predictions, spans = self.extract_predictions(ex, score_s, score_e)
-            # output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['answers'])
-            # golden_span = self.extract_golden(ex)
-            # output['f1'], output['em'] = self.evaluate_predictions(predictions, golden_span)
-            output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['next_golden_span'])
-            if out_predictions:
-                output['predictions'] = predictions
-                output['spans'] = spans
+            preds = torch.argmax(logits, dim=1)
+            corrects = torch.eq(preds, ex['label'])
+            output['em'] = torch.sum(corrects) / ex['label'].size(0)
         return output
 
     def compute_span_loss(self, score_s, score_e, targets):

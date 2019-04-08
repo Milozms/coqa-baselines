@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from torch.utils.data import Dataset
 from . import constants as Constants
 from .timer import Timer
-
+NUM_CLASSES = 2
 
 ################################################################################
 # Dataset Prep #
@@ -79,12 +79,16 @@ class CoQADataset(Dataset):
                 s1, e1 = qas['span']
                 s2, e2 = qas['next_span']
                 if qas['span'] == qas['next_span']:
-                    label = 'identical'
+                    # label = 'identical'
+                    label = 1
                 elif s1 > e2 or s2 > e1:
-                    label = 'different'
+                    # label = 'different'
+                    label = 0
                 else:
-                    label = 'overlap'
+                    # label = 'overlap'
+                    label = 1
                 trans_list.append(label)
+                qas['label'] = label
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
                 self.examples.append(qas)
@@ -123,7 +127,8 @@ class CoQADataset(Dataset):
                   # 'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
                   'evidence_marks': qas['paragraph_marks'],
                   'next_golden_span': [qas['next_golden_span']],
-                  'next_span': qas['next_span']}
+                  'next_span': qas['next_span'],
+                  'label': qas['label']}
 
         if self.config['predict_raw_text']:
             sample['raw_evidence'] = paragraph['context']
@@ -250,6 +255,7 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
         # sanitized_batch['answers'].append(ex['answers'])
         sanitized_batch['next_golden_span'].append(ex['next_golden_span'])
         sanitized_batch['evidence_marks'].append(ex['evidence_marks'])
+        sanitized_batch['label'].append(ex['label'])
         if 'id' in ex:
             sanitized_batch['id'].append(ex['id'])
     return sanitized_batch
@@ -312,6 +318,7 @@ def vectorize_input(batch, config, training=True, device=None):
                 targets[i, e, 1] = 1
     else:
         targets = next_span
+    label = torch.LongTensor(batch['label'])
 
     torch.set_grad_enabled(training)
     example = {'batch_size': batch_size,
@@ -324,7 +331,8 @@ def vectorize_input(batch, config, training=True, device=None):
                'xd_f': xd_f.to(device) if device else xd_f,
                'xd_marks': xd_marks.to(device) if device else xd_marks,
                'targets': targets.to(device) if device else targets,
-			   'next_span': next_span.to(device) if device else next_span}
+               'next_span': next_span.to(device) if device else next_span,
+               'label': label.to(device) if device else label}
 
     if config['predict_raw_text']:
         example['raw_evidence_text'] = batch['raw_evidence_text']
