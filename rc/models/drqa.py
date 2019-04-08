@@ -27,6 +27,10 @@ class DrQA(nn.Module):
 
         # Input size to RNN: word emb + question emb + manual features
         doc_input_size = input_w_dim + self.config['num_features']
+        if self.config['doc_mark_embed']:
+            self.doc_mark_embed = nn.Embedding(3, self.config['doc_mark_size'])
+            doc_input_size += self.config['doc_mark_size']
+
         if self.config['use_qemb']:
             doc_input_size += input_w_dim
 
@@ -83,7 +87,7 @@ class DrQA(nn.Module):
 
         # Add document mark as feature in pointer computation
         if config['doc_mark_in_pointer_computation']:
-            doc_hidden_size += 3
+            doc_hidden_size += self.config['doc_mark_size']
 
         # Bilinear attention for span start/end
         self.start_attn = BilinearSeqAttn(
@@ -124,6 +128,10 @@ class DrQA(nn.Module):
         else:
             drnn_input = xd_emb
 
+        if self.config['doc_mark_embed']:
+            xd_marks_emb = self.doc_mark_embed(xd_marks)
+            drnn_input = torch.cat(drnn_input, xd_marks_emb)
+
         if self.config["num_features"] > 0:
             drnn_input = torch.cat([drnn_input, ex['xd_f']], 2)
 
@@ -153,7 +161,7 @@ class DrQA(nn.Module):
 
         # Add document mark as feature in pointer computation
         if self.config['doc_mark_in_pointer_computation']:
-            doc_hiddens = torch.cat([doc_hiddens, xd_marks], 2)
+            doc_hiddens = torch.cat([doc_hiddens, xd_marks_emb], 2)
 
         # Predict start and end positions
         start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)
