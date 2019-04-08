@@ -79,11 +79,12 @@ class CoQADataset(Dataset):
                 s1, e1 = qas['span']
                 s2, e2 = qas['next_span']
                 if qas['span'] == qas['next_span']:
-                    trans_list.append('identical')
+                    label = 'identical'
                 elif s1 > e2 or s2 > e1:
-                    trans_list.append('different')
+                    label = 'different'
                 else:
-                    trans_list.append('overlap')
+                    label = 'overlap'
+                trans_list.append(label)
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
                 self.examples.append(qas)
