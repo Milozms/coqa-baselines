@@ -28,7 +28,7 @@ class DrQA(nn.Module):
         # Input size to RNN: word emb + question emb + manual features
         doc_input_size = input_w_dim + self.config['num_features']
         if self.config['doc_mark_embed']:
-            self.doc_mark_embed = nn.Embedding(3, self.config['doc_mark_size'])
+            self.doc_mark_embed = nn.Linear(3, self.config['doc_mark_size'], bias=False)
             doc_input_size += self.config['doc_mark_size']
 
         if self.config['use_qemb']:
