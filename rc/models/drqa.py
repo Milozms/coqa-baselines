@@ -130,7 +130,7 @@ class DrQA(nn.Module):
 
         if self.config['doc_mark_embed']:
             xd_marks_emb = self.doc_mark_embed(xd_marks)
-            drnn_input = torch.cat(drnn_input, xd_marks_emb)
+            drnn_input = torch.cat([drnn_input, xd_marks_emb], 2)
 
         if self.config["num_features"] > 0:
             drnn_input = torch.cat([drnn_input, ex['xd_f']], 2)
