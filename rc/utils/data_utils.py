@@ -43,6 +43,7 @@ class CoQADataset(Dataset):
         self.examples = []
         self.vocab = Counter()
         dataset = read_json(filename)
+        trans_list = []
         for paragraph in dataset['data']:
             history = []
             for qid, qas in enumerate(paragraph['qas']):
@@ -75,6 +76,14 @@ class CoQADataset(Dataset):
                                 rationale))
                 qas['annotated_question']['word'] = temp
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
+                s1, e1 = qas['span']
+                s2, e2 = qas['next_span']
+                if qas['span'] == qas['next_span']:
+                    trans_list.append('identical')
+                elif s1 > e2 or s2 > e1:
+                    trans_list.append('different')
+                else:
+                    trans_list.append('overlap')
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
                 self.examples.append(qas)
@@ -93,6 +102,8 @@ class CoQADataset(Dataset):
         print('Question length: avg = %.1f, max = %d' % (np.average(question_lens), np.max(question_lens)))
         print('Rationale length: avg = %.1f, max = %d' % (np.average(rationale_lens), np.max(rationale_lens)))
         timer.finish()
+        trans_counter = Counter(trans_list)
+        print(trans_counter)
 
     def __len__(self):
         return 50 if self.config['debug'] else len(self.examples)
