@@ -167,8 +167,16 @@ class Model(object):
 
         if (not update) or self.config['predict_train']:
             preds = torch.argmax(logits, dim=1)
-            corrects = torch.eq(preds, ex['label'])
-            output['em'] = torch.sum(corrects) / ex['label'].size(0)
+            correct = torch.eq(preds, ex['label'])
+            correct_golden = ex['label'] & preds
+            correct_golden_cnt = torch.sum(correct_golden).item()
+            preds_cnt = torch.sum(preds).item()
+            golden_cnt = torch.sum(ex['label']).item()
+            prec = float(correct_golden_cnt/preds_cnt) if preds_cnt > 0 else 0.0
+            recall = float(correct_golden_cnt / golden_cnt) if golden_cnt > 0 else 0.0
+            output['f1'] = 2.0 * prec * recall / (prec + recall) if prec + recall > 0 else 0.0
+            correct_cnt = torch.sum(correct).item()
+            output['em'] = float(correct_cnt / ex['label'].size(0))
         return output
 
     def compute_span_loss(self, score_s, score_e, targets):
