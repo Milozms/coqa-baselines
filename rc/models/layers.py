@@ -122,7 +122,8 @@ class SeqAttnMatch(nn.Module):
     def __init__(self, input_size, identity=False):
         super(SeqAttnMatch, self).__init__()
         if not identity:
-            self.linear = nn.Linear(input_size, input_size)
+            self.linear = inited_Linear(input_size, input_size)
+            _init_linear(self.linear)
         else:
             self.linear = None
 
@@ -166,7 +167,8 @@ class BilinearSeqAttn(nn.Module):
     def __init__(self, x_size, y_size, identity=False):
         super(BilinearSeqAttn, self).__init__()
         if not identity:
-            self.linear = nn.Linear(y_size, x_size)
+            self.linear = inited_Linear(y_size, x_size)
+            _init_linear(self.linear)
         else:
             self.linear = None
 
@@ -189,7 +191,8 @@ class LinearSeqAttn(nn.Module):
     """
     def __init__(self, input_size):
         super(LinearSeqAttn, self).__init__()
-        self.linear = nn.Linear(input_size, 1)
+        self.linear = inited_Linear(input_size, 1)
+        _init_linear(self.linear)
 
     def forward(self, x, x_mask):
         """
@@ -201,6 +204,12 @@ class LinearSeqAttn(nn.Module):
         scores.masked_fill_(x_mask, -float('inf'))
         alpha = F.softmax(scores, dim=-1)
         return alpha
+
+
+def inited_Linear(in_features, out_features, bias=True):
+    _linear = nn.Linear(in_features, out_features, bias)
+    _init_linear(_linear)
+    return _linear
 
 ################################################################################
 # Functional #
@@ -242,9 +251,12 @@ def weighted_avg(x, weights):
     return weights.unsqueeze(1).bmm(x).squeeze(1)
 
 
-def _init_rnn(layer, init_func):
+def _init_rnn(layer, init_func=nn.init.xavier_uniform_):
     for name, param in layer.named_parameters():
         if 'bias' in name:
-            nn.init.constant(param, 0.0)
+            init_func(param)
         elif 'weight' in name:
             init_func(param)
+
+def _init_linear(layer, init_func=nn.init.xavier_uniform_):
+    init_func(layer.weight.data)

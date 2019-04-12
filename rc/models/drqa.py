@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .layers import SeqAttnMatch, StackedBRNN, LinearSeqAttn, BilinearSeqAttn
-from .layers import weighted_avg, uniform_weights, dropout
+from .layers import weighted_avg, uniform_weights, dropout, inited_Linear
 
 
 class DrQA(nn.Module):
@@ -28,7 +28,7 @@ class DrQA(nn.Module):
         # Input size to RNN: word emb + question emb + manual features
         doc_input_size = input_w_dim + self.config['num_features']
         if self.config['doc_mark_embed']:
-            self.doc_mark_embed = nn.Linear(3, self.config['doc_mark_size'], bias=False)
+            self.doc_mark_embed = inited_Linear(3, self.config['doc_mark_size'], bias=False)
             doc_input_size += self.config['doc_mark_size']
 
         if self.config['use_qemb']:
@@ -36,8 +36,8 @@ class DrQA(nn.Module):
 
         # Project document and question to the same size as their encoders
         if self.config['resize_rnn_input']:
-            self.doc_linear = nn.Linear(doc_input_size, config['hidden_size'], bias=True)
-            self.q_linear = nn.Linear(input_w_dim, config['hidden_size'], bias=True)
+            self.doc_linear = inited_Linear(doc_input_size, config['hidden_size'], bias=True)
+            self.q_linear = inited_Linear(input_w_dim, config['hidden_size'], bias=True)
             doc_input_size = q_input_size = config['hidden_size']
 
         # RNN document encoder
