@@ -23,10 +23,12 @@ class StackedBRNN(nn.Module):
         self.rnns = nn.ModuleList()
         for i in range(num_layers):
             input_size = input_size if i == 0 else (2 * hidden_size if bidirectional else hidden_size)
-            self.rnns.append(rnn_type(input_size, hidden_size,
+            _rnn = rnn_type(input_size, hidden_size,
                                       num_layers=1,
                                       batch_first=True,
-                                      bidirectional=bidirectional))
+                                      bidirectional=bidirectional)
+            _init_rnn(_rnn, nn.init.xavier_uniform_)
+            self.rnns.append(_rnn)
 
     def forward(self, x, x_mask):
         """Can choose to either handle or ignore variable length sequences.
@@ -238,3 +240,11 @@ def weighted_avg(x, weights):
     weights = batch * len
     """
     return weights.unsqueeze(1).bmm(x).squeeze(1)
+
+
+def _init_rnn(layer, init_func):
+    for name, param in layer.named_parameters():
+        if 'bias' in name:
+            nn.init.constant(param, 0.0)
+        elif 'weight' in name:
+            init_func(param)
