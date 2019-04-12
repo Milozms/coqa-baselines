@@ -100,11 +100,12 @@ class ModelHandler(object):
                   self._train_f1.mean(), self._train_em.mean()))
 
             print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
-            self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
+            dev_loss, _ = self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
             timer.interval("Validation Epoch {}".format(self._epoch))
             format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
             print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
-
+            if self.config['optimizer'] == 'sgd' and self.config['reduce_lr']:
+                self.model.schedule_lr(dev_loss)
             if self._best_f1 <= self._dev_f1.mean():  # Can be one of loss, f1, or em.
                 self._best_epoch = self._epoch
                 self._best_f1 = self._dev_f1.mean()
@@ -135,7 +136,7 @@ class ModelHandler(object):
         self.is_test = True
         self._reset_metrics()
         timer = Timer("Test")
-        output = self._run_epoch(self.test_loader, training=False, verbose=0,
+        _, output = self._run_epoch(self.test_loader, training=False, verbose=0,
                                  out_predictions=self.config['out_predictions'])
 
         for ex in output:
@@ -159,6 +160,7 @@ class ModelHandler(object):
     def _run_epoch(self, data_loader, training=True, verbose=10, out_predictions=False):
         start_time = time.time()
         output = []
+        epoch_loss = AverageMeter()
         for step, input_batch in enumerate(data_loader):
             input_batch = sanitize_input(input_batch, self.config, self.model.word_dict,
                                          self.model.feature_dict, training=training)
@@ -172,7 +174,7 @@ class ModelHandler(object):
             f1 = res['f1']
             em = res['em']
             self._update_metrics(loss, f1, em, x_batch['batch_size'], training=training)
-
+            epoch_loss.update(loss)
             if training:
                 self._n_train_examples += x_batch['batch_size']
 
@@ -187,7 +189,7 @@ class ModelHandler(object):
                                    'answer': prediction,
                                    'span_start': span[0],
                                    'span_end': span[1]})
-        return output
+        return epoch_loss.mean(), output
 
     def report(self, step, loss, f1, em, mode='train'):
         if mode == "train":

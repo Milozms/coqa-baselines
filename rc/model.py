@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 
 from word_model import WordModel
@@ -131,11 +132,19 @@ class Model(object):
             self.optimizer = optim.SGD(parameters, self.config['learning_rate'],
                                        momentum=self.config['momentum'],
                                        weight_decay=self.config['weight_decay'])
+            if self.config['reduce_lr']:
+                self.lr_scheduler = ReduceLROnPlateau(self.optimizer, 'min',
+                                                      self.config['reduce_lr_factor'],
+                                                      self.config['reduce_lr_patience'],
+                                                      verbose=True)
         elif self.config['optimizer'] == 'adamax':
             self.optimizer = optim.Adamax(parameters,
                                           weight_decay=self.config['weight_decay'])
         else:
             raise RuntimeError('Unsupported optimizer: %s' % self.config['optimizer'])
+
+    def schedule_lr(self, valid_loss):
+        self.lr_scheduler.step(valid_loss)
 
     def predict(self, ex, update=True, out_predictions=False):
         # Train/Eval mode
