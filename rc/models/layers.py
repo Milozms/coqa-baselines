@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import math
 
 ################################################################################
 # Modules #
@@ -254,7 +254,7 @@ def weighted_avg(x, weights):
 def _init_rnn(layer, init_func=nn.init.xavier_uniform_):
     for name, param in layer.named_parameters():
         if 'bias' in name:
-            init_func(param)
+            param.data.fill_(0)
         elif 'weight' in name:
             init_func(param)
 
