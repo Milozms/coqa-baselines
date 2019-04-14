@@ -51,9 +51,15 @@ class CoQADataset(Dataset):
                 qas['paragraph_id'] = len(self.paragraphs)
                 temp = []
                 n_history = len(history) if config['n_history'] < 0 else min(config['n_history'], len(history))
+                memory = []
                 if n_history > 0:
                     for i, (q, a, r) in enumerate(history[-n_history:]):
                         d = n_history - i
+                        memory.append((
+                            ['<Q{}>'.format(d)]+q,
+                            ['<A{}>'.format(d)]+a,
+                            ['<R{}>'.format(d)]+r
+                        ))
                         temp.append('<Q{}>'.format(d))
                         temp.extend(q)
                         if config['input_with_rationale']:
@@ -71,9 +77,15 @@ class CoQADataset(Dataset):
                 elif config['input_with_answer']:
                     temp.append('<A>')
                     temp.extend(qas['annotated_answer']['word'])
+                memory.append((
+                            ['<Q>']+qas['annotated_question']['word'],
+                            ['<A>']+qas['annotated_answer']['word'],
+                            ['<R>']+rationale
+                        ))
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word'],
                                 rationale))
-                qas['annotated_question']['word'] = temp
+                qas['question_with_history'] = temp
+                qas['memory'] = memory
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
@@ -105,6 +117,8 @@ class CoQADataset(Dataset):
 
         sample = {'id': (paragraph['id'], qas['turn_id']),
                   'question': question,
+                  'ques_history': qas['question_with_history'],
+                  'memory': qas['memory'],
                   # 'answers': answers,
                   'evidence': paragraph['annotated_context'],
                   # 'targets': qas['answer_span'],
