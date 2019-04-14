@@ -11,3 +11,10 @@ for hidden_size in 128 256 400 512
     done
 
 echo "tuning for $model finished!"
+
+# n layers
+# hidden size
+# batch size
+# history num
+# sgd, lr, reduce
+# momentum
