@@ -103,9 +103,8 @@ class Model(object):
         if self.config['f_pos']:
             pos_tags = set()
             for ex in train_set:
-                for context in ex['evidence']:
-                    assert 'pos' in context
-                    pos_tags |= set(context['pos'])
+                assert 'pos' in ex['evidence']
+                pos_tags |= set(ex['evidence']['pos'])
             print('{} pos tags: {}'.format(len(pos_tags), str(pos_tags)))
             for pos in pos_tags:
                 feature_dict['f_pos={}'.format(pos)] = len(feature_dict)
@@ -113,9 +112,8 @@ class Model(object):
         if self.config['f_ner']:
                 ner_tags = set()
                 for ex in train_set:
-                    for context in ex['evidence']:
-                        assert 'ner' in context
-                        ner_tags |= set(context['ner'])
+                    assert 'ner' in ex['evidence']
+                    ner_tags |= set(ex['evidence']['ner'])
                 print('{} ner tags: {}'.format(len(ner_tags), str(ner_tags)))
                 for ner in ner_tags:
                     feature_dict['f_ner={}'.format(ner)] = len(feature_dict)
