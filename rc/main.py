@@ -40,7 +40,9 @@ def get_args():
     parser.add_argument('--cuda_id', type=int, default=-1, help='Specify a CUDA id.')
     parser.add_argument('--debug', type=str2bool, default=False)
 
-    parser.add_argument('--n_history', type=int, default=0)
+    parser.add_argument('--n_history', type=int, default=2)
+    parser.add_argument('--n_current', type=int, default=1,
+                        help='Number of questions whose rationale will be marked current.')
     parser.add_argument('--cased', type=str2bool, default=True, help='Cased or uncased version.')
     parser.add_argument('--min_freq', type=int, default=20)
     parser.add_argument('--top_vocab', type=int, default=100000)
@@ -74,6 +76,11 @@ def get_args():
     group.add_argument('--dropout_rnn_output', type=str2bool, default=True, help='Whether to dropout last layer.')
     group.add_argument('--variational_dropout', type=str2bool, default=True, help='Set variational dropout on/off.')
     group.add_argument('--word_dropout', type=str2bool, default=False, help='Whether to dropout word.')
+    group.add_argument('--doc_mark_as_feature', type=str2bool, default=False)
+    group.add_argument('--doc_mark_embed', type=str2bool, default=False)
+    group.add_argument('--doc_mark_size', type=int, default=50)
+    group.add_argument('--doc_mark_in_pointer_computation', type=str2bool, default=False)
+
 
     # Optimizer
     group = parser.add_argument_group('training_spec')
