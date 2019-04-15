@@ -98,8 +98,8 @@ class CoQADataset(Dataset):
         return sample
 
 def extract_annotated_rationale(paragraph, qas):
-    s_idx = qas['span'][0]
-    e_idx = qas['span'][1]
+    s_idx = qas['answer_span'][0]
+    e_idx = qas['answer_span'][1]
     text = paragraph['annotated_context']['word']
     result = text[s_idx: e_idx + 1]
     return result
@@ -121,11 +121,11 @@ def get_marks_for_paragraph(qas, paragraph, config):
     first_current_qid = qid - n_current + 1
     # history questions
     for history_qas in paragraph['qas'][:first_current_qid]:
-        s, e = history_qas['span']
+        s, e = history_qas['answer_span']
         result[s:e] = 2
     # current questions
     for cur_qas in paragraph['qas'][first_current_qid:qid+1]:
-        s, e = cur_qas['span']
+        s, e = cur_qas['answer_span']
         result[s:e] = 1
     return result
 
