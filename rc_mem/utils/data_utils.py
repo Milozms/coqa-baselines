@@ -63,18 +63,18 @@ class CoQADataset(Dataset):
                         temp.append('<Q{}>'.format(d))
                         temp.extend(q)
                         if config['input_with_rationale']:
-                            temp.append('<A{}>'.format(d))
+                            temp.append('<R{}>'.format(d))
                             temp.extend(r)
-                        elif config['input_with_answer']:
+                        if config['input_with_answer']:
                             temp.append('<A{}>'.format(d))
                             temp.extend(a)
                 temp.append('<Q>')
                 temp.extend(qas['annotated_question']['word'])
                 rationale = extract_annotated_rationale(paragraph, qas)
                 if config['input_with_rationale']:
-                    temp.append('<A>')
+                    temp.append('<R>')
                     temp.extend(rationale)
-                elif config['input_with_answer']:
+                if config['input_with_answer']:
                     temp.append('<A>')
                     temp.extend(qas['annotated_answer']['word'])
                 memory.append((
@@ -84,7 +84,7 @@ class CoQADataset(Dataset):
                         ))
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word'],
                                 rationale))
-                qas['question_with_history'] = temp
+                qas['annotated_question']['word'] = temp
                 qas['memory'] = memory
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
@@ -117,7 +117,6 @@ class CoQADataset(Dataset):
 
         sample = {'id': (paragraph['id'], qas['turn_id']),
                   'question': question,
-                  'ques_history': qas['question_with_history'],
                   'memory': qas['memory'],
                   # 'answers': answers,
                   'evidence': paragraph['annotated_context'],
