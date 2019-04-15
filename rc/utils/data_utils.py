@@ -59,6 +59,7 @@ class CoQADataset(Dataset):
                 temp.extend(qas['annotated_question']['word'])
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
                 qas['annotated_question']['word'] = temp
+                qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
                 paragraph_lens.append(len(paragraph['annotated_context']['word']))
@@ -89,12 +90,44 @@ class CoQADataset(Dataset):
                   'question': question,
                   'answers': answers,
                   'evidence': paragraph['annotated_context'],
+                  'evidence_marks': qas['paragraph_marks'],
                   'targets': qas['answer_span']}
 
         if self.config['predict_raw_text']:
             sample['raw_evidence'] = paragraph['context']
         return sample
 
+def extract_annotated_rationale(paragraph, qas):
+    s_idx = qas['span'][0]
+    e_idx = qas['span'][1]
+    text = paragraph['annotated_context']['word']
+    result = text[s_idx: e_idx + 1]
+    return result
+
+
+def get_marks_for_paragraph(qas, paragraph, config):
+    '''
+    0: not asked
+    1: being asked by current question
+    2: asked by any question in history (if not 1)
+    :param qas:
+    :param paragraph:
+    :param config:
+    :return:
+    '''
+    n_current = config['n_current']
+    result = np.zeros(len(paragraph['annotated_context']['word']), dtype=np.uint8)
+    qid = qas['turn_id'] - 1     # turn_id start from 1
+    first_current_qid = qid - n_current + 1
+    # history questions
+    for history_qas in paragraph['qas'][:first_current_qid]:
+        s, e = history_qas['span']
+        result[s:e] = 2
+    # current questions
+    for cur_qas in paragraph['qas'][first_current_qid:qid+1]:
+        s, e = cur_qas['span']
+        result[s:e] = 1
+    return result
 
 ################################################################################
 # Read & Write Helper Functions #
@@ -164,9 +197,11 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
             sanitized_batch['evidence_text'].append(evidence)
 
         # featurize evidence document:
-        sanitized_batch['features'].append(featurize(ex['question'], ex['evidence'], feature_dict))
+        sanitized_batch['features'].append(featurize(ex['question'], ex['evidence'], feature_dict,
+                                                     ex['evidence_marks'], config))
         sanitized_batch['targets'].append(ex['targets'])
         sanitized_batch['answers'].append(ex['answers'])
+        sanitized_batch['evidence_marks'].append(ex['evidence_marks'])
         if 'id' in ex:
             sanitized_batch['id'].append(ex['id'])
     return sanitized_batch
@@ -202,10 +237,15 @@ def vectorize_input(batch, config, training=True, device=None):
     xd = torch.LongTensor(batch_size, max_d_len).fill_(0)
     xd_mask = torch.ByteTensor(batch_size, max_d_len).fill_(1)
     xd_f = torch.zeros(batch_size, max_d_len, config['num_features']) if config['num_features'] > 0 else None
+    # document marks (one-hot)
+    xd_marks = torch.FloatTensor(batch_size, max_d_len, 3).fill_(0)
 
     # 2(a): fill up DrQA section variables
     for i, d in enumerate(batch['evidence']):
         xd[i, :len(d)].copy_(torch.LongTensor(d))
+        d_mark = batch['evidence_marks'][i]
+        for j, m in enumerate(d_mark):
+            xd_marks[i, j, m] = 1.0
         xd_mask[i, :len(d)].fill_(0)
         if config['num_features'] > 0:
             xd_f[i, :len(d)].copy_(batch['features'][i])
@@ -230,6 +270,7 @@ def vectorize_input(batch, config, training=True, device=None):
                'xq_mask': xq_mask.to(device) if device else xq_mask,
                'xd': xd.to(device) if device else xd,
                'xd_mask': xd_mask.to(device) if device else xd_mask,
+               'xd_marks': xd_marks.to(device) if device else xd_marks,
                'xd_f': xd_f.to(device) if device else xd_f,
                'targets': targets.to(device) if device else targets}
 
@@ -241,7 +282,7 @@ def vectorize_input(batch, config, training=True, device=None):
     return example
 
 
-def featurize(question, document, feature_dict):
+def featurize(question, document, feature_dict, doc_marks, config):
     doc_len = len(document['word'])
     features = torch.zeros(doc_len, len(feature_dict))
     q_cased_words = set([w for w in question['word']])
@@ -252,12 +293,16 @@ def featurize(question, document, feature_dict):
             features[i][feature_dict['f_qem_cased']] = 1.0
         if 'f_qem_uncased' in feature_dict and d_word.lower() in q_uncased_words:
             features[i][feature_dict['f_qem_uncased']] = 1.0
-        if 'pos' in document:
+        if 'pos' in document and i < len(document['pos']):
             f_pos = 'f_pos={}'.format(document['pos'][i])
             if f_pos in feature_dict:
                 features[i][feature_dict[f_pos]] = 1.0
-        if 'ner' in document:
+        if 'ner' in document and i < len(document['ner']):
             f_ner = 'f_ner={}'.format(document['ner'][i])
             if f_ner in feature_dict:
                 features[i][feature_dict[f_ner]] = 1.0
+        if config['doc_mark_as_feature']:
+            f_mark = 'mark={}'.format(doc_marks[i])
+            features[i][feature_dict[f_mark]] = 1.0
+
     return features
