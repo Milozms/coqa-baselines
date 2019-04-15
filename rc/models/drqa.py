@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .layers import SeqAttnMatch, StackedBRNN, LinearSeqAttn, BilinearSeqAttn
-from .layers import weighted_avg, uniform_weights, dropout
+from .layers import weighted_avg, uniform_weights, dropout, inited_Linear
 
 
 class DrQA(nn.Module):
@@ -32,8 +32,8 @@ class DrQA(nn.Module):
 
         # Project document and question to the same size as their encoders
         if self.config['resize_rnn_input']:
-            self.doc_linear = nn.Linear(doc_input_size, config['hidden_size'], bias=True)
-            self.q_linear = nn.Linear(input_w_dim, config['hidden_size'], bias=True)
+            self.doc_linear = inited_Linear(doc_input_size, config['hidden_size'], bias=True)
+            self.q_linear = inited_Linear(input_w_dim, config['hidden_size'], bias=True)
             doc_input_size = q_input_size = config['hidden_size']
 
         # RNN document encoder
