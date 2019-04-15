@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .layers import SeqAttnMatch, StackedBRNN, LinearSeqAttn, BilinearSeqAttn
-from .layers import weighted_avg, uniform_weights, dropout, inited_Linear
+from .layers import SeqAttnMatch, StackedBRNN, LinearSeqAttn, BilinearSeqAttn3D
+from .layers import weighted_avg, weighted_avg_softmax, uniform_weights, dropout, inited_Linear
 
 
 class DrQA(nn.Module):
@@ -80,24 +80,25 @@ class DrQA(nn.Module):
             doc_hidden_size = doc_hidden_size + question_hidden_size
 
         # Question merging
-        if config['question_merge'] not in ['avg', 'self_attn']:
-            raise NotImplementedError('question_merge = %s' % config['question_merge'])
-        if config['question_merge'] == 'self_attn':
-            self.self_attn = LinearSeqAttn(question_hidden_size)
+        # if config['question_merge'] not in ['avg', 'self_attn']:
+        #     raise NotImplementedError('question_merge = %s' % config['question_merge'])
+        # if config['question_merge'] == 'self_attn':
+        #     self.self_attn = LinearSeqAttn(question_hidden_size)
 
         # Add document mark as feature in pointer computation
         if config['doc_mark_in_pointer_computation']:
             doc_hidden_size += self.config['doc_mark_size']
 
         # Bilinear attention for span start/end
-        self.start_attn = BilinearSeqAttn(
+        self.start_attn = BilinearSeqAttn3D(
             doc_hidden_size,
             question_hidden_size,
         )
-        q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
-        self.end_attn = BilinearSeqAttn(
+        self.start_linear = inited_Linear()
+        # q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
+        self.end_attn = BilinearSeqAttn3D(
             doc_hidden_size,
-            q_rep_size,
+            question_hidden_size,
         )
 
     def forward(self, ex):
@@ -108,6 +109,7 @@ class DrQA(nn.Module):
         xd_f = document word features indices  (batch, max_d_len, nfeat)
         xd_mask = document padding mask        (batch, max_d_len)
         targets = span targets                 (batch,)
+        history_idx
         """
 
         # Embed both document and question
@@ -153,11 +155,12 @@ class DrQA(nn.Module):
 
         # Encode question with RNN + merge hiddens
         question_hiddens = self.question_rnn(xq_emb, xq_mask)
-        if self.config['question_merge'] == 'avg':
-            q_merge_weights = uniform_weights(question_hiddens, xq_mask)
-        elif self.config['question_merge'] == 'self_attn':
-            q_merge_weights = self.self_attn(question_hiddens.contiguous(), xq_mask)
-        question_hidden = weighted_avg(question_hiddens, q_merge_weights)
+
+        # if self.config['question_merge'] == 'avg':
+        #     q_merge_weights = uniform_weights(question_hiddens, xq_mask)
+        # elif self.config['question_merge'] == 'self_attn':
+        #     q_merge_weights = self.self_attn(question_hiddens.contiguous(), xq_mask)
+        # question_hidden = weighted_avg(question_hiddens, q_merge_weights)
 
         # Add document mark as feature in pointer computation
         if self.config['doc_mark_in_pointer_computation']:
@@ -166,7 +169,8 @@ class DrQA(nn.Module):
         # Predict start and end positions
         start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)
         if self.config['span_dependency']:
-            question_hidden = torch.cat([question_hidden, (doc_hiddens * start_scores.exp().unsqueeze(2)).sum(1)], 1)
+            (doc_hiddens * start_scores.exp().unsqueeze(2)).sum(1)
+        #     question_hidden = torch.cat([question_hidden, (doc_hiddens * start_scores.exp().unsqueeze(2)).sum(1)], 1)
         end_scores = self.end_attn(doc_hiddens, question_hidden, xd_mask)
 
         return {'score_s': start_scores,

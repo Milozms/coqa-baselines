@@ -50,30 +50,38 @@ class CoQADataset(Dataset):
                     break
                 qas['paragraph_id'] = len(self.paragraphs)
                 temp = []
+                temp_idx = []
                 n_history = len(history) if config['n_history'] < 0 else min(config['n_history'], len(history))
                 if n_history > 0:
                     for i, (q, a, r) in enumerate(history[-n_history:]):
                         d = n_history - i
                         temp.append('<Q{}>'.format(d))
                         temp.extend(q)
+                        temp_idx.append(len(temp))
                         if config['input_with_rationale']:
-                            temp.append('<A{}>'.format(d))
+                            temp.append('<R{}>'.format(d))
                             temp.extend(r)
-                        elif config['input_with_answer']:
+                            temp_idx.append(len(temp))
+                        if config['input_with_answer']:
                             temp.append('<A{}>'.format(d))
                             temp.extend(a)
+                            temp_idx.append(len(temp))
                 temp.append('<Q>')
                 temp.extend(qas['annotated_question']['word'])
+                temp_idx.append(len(temp))
                 rationale = extract_annotated_rationale(paragraph, qas)
                 if config['input_with_rationale']:
-                    temp.append('<A>')
+                    temp.append('<R>')
                     temp.extend(rationale)
-                elif config['input_with_answer']:
+                    temp_idx.append(len(temp))
+                if config['input_with_answer']:
                     temp.append('<A>')
                     temp.extend(qas['annotated_answer']['word'])
+                    temp_idx.append(len(temp))
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word'],
                                 rationale))
                 qas['annotated_question']['word'] = temp
+                qas['history_idx'] = temp_idx
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
@@ -106,6 +114,7 @@ class CoQADataset(Dataset):
         sample = {'id': (paragraph['id'], qas['turn_id']),
                   'question': question,
                   # 'answers': answers,
+                  'history_idx': qas['history_idx'],
                   'evidence': paragraph['annotated_context'],
                   # 'targets': qas['answer_span'],
                   # 'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
@@ -238,6 +247,7 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
         # sanitized_batch['answers'].append(ex['answers'])
         sanitized_batch['next_golden_span'].append(ex['next_golden_span'])
         sanitized_batch['evidence_marks'].append(ex['evidence_marks'])
+        sanitized_batch['history_idx'].append(ex['history_idx'])
         if 'id' in ex:
             sanitized_batch['id'].append(ex['id'])
     return sanitized_batch

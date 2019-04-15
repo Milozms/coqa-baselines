@@ -123,7 +123,6 @@ class SeqAttnMatch(nn.Module):
         super(SeqAttnMatch, self).__init__()
         if not identity:
             self.linear = inited_Linear(input_size, input_size)
-            _init_linear(self.linear)
         else:
             self.linear = None
 
@@ -168,7 +167,6 @@ class BilinearSeqAttn(nn.Module):
         super(BilinearSeqAttn, self).__init__()
         if not identity:
             self.linear = inited_Linear(y_size, x_size)
-            _init_linear(self.linear)
         else:
             self.linear = None
 
@@ -184,6 +182,32 @@ class BilinearSeqAttn(nn.Module):
         alpha = F.log_softmax(xWy, dim=-1)
         return alpha
 
+class BilinearSeqAttn3D(nn.Module):
+    """A bilinear attention layer over a sequence X w.r.t y:
+    * o_i = softmax(x_i'Wy) for x_i in X.
+    NO Softmax!!!
+    """
+    def __init__(self, x_size, y_size, identity=False):
+        super(BilinearSeqAttn3D, self).__init__()
+        if not identity:
+            self.linear = inited_Linear(y_size, x_size)
+        else:
+            self.linear = None
+
+    def forward(self, x, y, x_mask):
+        """
+        x = batch * dlen * h1        (doc_hiddens)
+        y = batch * qlen * h2        (question_hiddens)
+        x_mask = batch * dlen        (xd_mask)
+        """
+        batch, dlen, h1 = x.size()
+        _, qlen, h2 = y.size()
+        Wy = self.linear(y) if self.linear is not None else y    # batch * qlen * h1
+        xWy = x.bmm(Wy.transpose(1, 2))                          # batch * dlen * qlen
+        for j in range(xWy.size(2)):
+            xWy[:, :, j].masked_fill_(x_mask, -float('inf'))
+        return xWy
+
 
 class LinearSeqAttn(nn.Module):
     """Self attention over a sequence:
@@ -192,7 +216,6 @@ class LinearSeqAttn(nn.Module):
     def __init__(self, input_size):
         super(LinearSeqAttn, self).__init__()
         self.linear = inited_Linear(input_size, 1)
-        _init_linear(self.linear)
 
     def forward(self, x, x_mask):
         """
@@ -248,6 +271,13 @@ def weighted_avg(x, weights):
     """x = batch * len * d
     weights = batch * len
     """
+    return weights.unsqueeze(1).bmm(x).squeeze(1)
+
+def weighted_avg_softmax(x, weights):
+    """x = batch * len * d
+    weights = batch * len
+    """
+    weights = F.softmax(weights, dim=-1)
     return weights.unsqueeze(1).bmm(x).squeeze(1)
 
 
