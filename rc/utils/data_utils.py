@@ -117,7 +117,7 @@ def get_marks_for_paragraph(qas, paragraph, config):
     '''
     n_current = config['n_current']
     result = np.zeros(len(paragraph['annotated_context']['word']), dtype=np.uint8)
-    qid = qas['turn_id'] - 1     # turn_id start from 1
+    qid = qas['turn_id'] - 2     # turn_id start from 1 (Different!!!! -2 because we want previous question here)
     first_current_qid = qid - n_current + 1
     # history questions
     for history_qas in paragraph['qas'][:first_current_qid]:
