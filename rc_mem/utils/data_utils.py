@@ -57,8 +57,8 @@ class CoQADataset(Dataset):
                         d = n_history - i
                         memory.append((
                             ['<Q{}>'.format(d)]+q,
-                            ['<A{}>'.format(d)]+a,
-                            ['<R{}>'.format(d)]+r
+                            ['<A{}>'.format(d)]+a
+                            # ['<R{}>'.format(d)]+r
                         ))
                         temp.append('<Q{}>'.format(d))
                         temp.extend(q)
@@ -79,9 +79,10 @@ class CoQADataset(Dataset):
                     temp.extend(qas['annotated_answer']['word'])
                 memory.append((
                             ['<Q>']+qas['annotated_question']['word'],
-                            ['<A>']+qas['annotated_answer']['word'],
-                            ['<R>']+rationale
+                            ['<A>']+qas['annotated_answer']['word']
+                            # ['<R>']+rationale
                         ))
+                memory.reverse()
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word'],
                                 rationale))
                 qas['annotated_question']['word'] = temp
@@ -212,6 +213,9 @@ def get_processed_file_contents(file_path, encoding="utf-8"):
 ################################################################################
 
 
+def seq_tok2id(seq, vocab):
+    return [vocab[w] if w in vocab else vocab[Constants._UNK_TOKEN] for w in seq]
+
 def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
     """
     Reformats sample_batch for easy vectorization.
@@ -233,9 +237,14 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
         for w in evidence:
             processed_e.append(vocab[w] if w in vocab else vocab[Constants._UNK_TOKEN])
 
+        processed_memory = []
+        for qar in ex['memory']:
+            processed_memory.append([seq_tok2id(seq, vocab) for seq in qar])
+
         # Append relevant index-structures to batch
         sanitized_batch['question'].append(processed_q)
         sanitized_batch['evidence'].append(processed_e)
+        sanitized_batch['memory'].append(processed_memory)
 
         if config['predict_raw_text']:
             sanitized_batch['raw_evidence_text'].append(ex['raw_evidence'])
@@ -268,6 +277,7 @@ def vectorize_input(batch, config, training=True, device=None):
 
     # Relevant parameters:
     batch_size = len(batch['question'])
+    n_history = config['n_history']
 
     # Initialize all relevant parameters to None:
     targets = None
@@ -280,6 +290,16 @@ def vectorize_input(batch, config, training=True, device=None):
     for i, q in enumerate(batch['question']):
         xq[i, :len(q)].copy_(torch.LongTensor(q))
         xq_mask[i, :len(q)].fill_(0)
+
+    # Memory inputs
+    max_mem_len = max([max(len(seq) for seq in qar) for qar in batch['memory']])
+    xmem = torch.LongTensor(batch_size, n_history*2, max_mem_len).fill_(0)
+    xmem_mask = torch.ByteTensor(batch_size, n_history*2, max_mem_len).fill_(1)
+    for i, mem in enumerate(batch['memory']):
+        for j, qa in enumerate(mem):
+            for k, seq in enumerate(qa):
+                xmem[i, j*2+k, :len(seq)].copy_(torch.LongTensor(seq))
+                xmem_mask[i, j*2+k, :len(seq)].fill_(0)
 
     # Part 2: Document Words
     max_d_len = max([len(d) for d in batch['evidence']])
@@ -325,7 +345,9 @@ def vectorize_input(batch, config, training=True, device=None):
                'xd_f': xd_f.to(device) if device else xd_f,
                'xd_marks': xd_marks.to(device) if device else xd_marks,
                'targets': targets.to(device) if device else targets,
-			   'next_span': next_span.to(device) if device else next_span}
+			   'next_span': next_span.to(device) if device else next_span,
+               'xmem': xmem.to(device) if device else xmem,
+               'xmem_mask': xmem_mask.to(device) if device else xmem}
 
     if config['predict_raw_text']:
         example['raw_evidence_text'] = batch['raw_evidence_text']
