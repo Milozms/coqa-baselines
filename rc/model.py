@@ -120,6 +120,10 @@ class Model(object):
                 for ner in ner_tags:
                     feature_dict['f_ner={}'.format(ner)] = len(feature_dict)
 
+        if self.config['doc_mark_as_feature']:
+            for mark in range(0, 3):
+                feature_dict['mark={}'.format(mark)] = len(feature_dict)
+
         print('# features: {}'.format(len(feature_dict)))
         return feature_dict
 
