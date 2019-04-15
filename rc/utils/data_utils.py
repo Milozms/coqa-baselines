@@ -119,14 +119,15 @@ def get_marks_for_paragraph(qas, paragraph, config):
     result = np.zeros(len(paragraph['annotated_context']['word']), dtype=np.uint8)
     qid = qas['turn_id'] - 2     # turn_id start from 1 (Different!!!! -2 because we want previous question here)
     first_current_qid = qid - n_current + 1
-    # history questions
-    for history_qas in paragraph['qas'][:first_current_qid]:
-        s, e = history_qas['answer_span']
-        result[s:e] = 2
-    # current questions
-    for cur_qas in paragraph['qas'][first_current_qid:qid+1]:
-        s, e = cur_qas['answer_span']
-        result[s:e] = 1
+    if first_current_qid > 0:
+        # history questions
+        for history_qas in paragraph['qas'][:first_current_qid]:
+            s, e = history_qas['answer_span_start'], history_qas['answer_span_end']
+            result[s:e] = 2
+        # current questions
+        for cur_qas in paragraph['qas'][first_current_qid:qid+1]:
+            s, e = cur_qas['answer_span_start'], cur_qas['answer_span_end']
+            result[s:e] = 1
     return result
 
 ################################################################################
