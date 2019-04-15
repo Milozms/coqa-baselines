@@ -33,10 +33,16 @@ def _str(s):
 
 
 def process(text):
-    paragraph = nlp.annotate(text, properties={
+    if args.feature:
+        paragraph = nlp.annotate(text, properties={
                              'annotators': 'tokenize, ssplit, lemma, pos, ner',
                              'outputFormat': 'json',
                              'ssplit.newlineIsSentenceBreak': 'two'})
+    else:
+        paragraph = nlp.annotate(text, properties={
+            'annotators': 'tokenize, ssplit',
+            'outputFormat': 'json',
+            'ssplit.newlineIsSentenceBreak': 'two'})
 
     output = {'word': [],
               'lemma': [],
@@ -47,9 +53,10 @@ def process(text):
     for sent in paragraph['sentences']:
         for token in sent['tokens']:
             output['word'].append(_str(token['word']))
-            output['lemma'].append(_str(token['lemma']))
-            output['pos'].append(token['pos'])
-            output['ner'].append(token['ner'])
+            if args.feature:
+                output['lemma'].append(_str(token['lemma']))
+                output['pos'].append(token['pos'])
+                output['ner'].append(token['ner'])
             output['offsets'].append((token['characterOffsetBegin'], token['characterOffsetEnd']))
     return output
 
@@ -106,9 +113,17 @@ def find_span(offsets, start, end):
             end_index = i
     return (start_index, end_index)
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--feature', type=str2bool, default=False)
     parser.add_argument('--data_file', '-d', type=str, required=True)
     parser.add_argument('--output_file', '-o', type=str, required=True)
     args = parser.parse_args()
