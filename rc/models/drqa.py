@@ -27,6 +27,10 @@ class DrQA(nn.Module):
 
         # Input size to RNN: word emb + question emb + manual features
         doc_input_size = input_w_dim + self.config['num_features']
+        if self.config['doc_mark_embed']:
+            self.doc_mark_embed = inited_Linear(3, self.config['doc_mark_size'], bias=False)
+            doc_input_size += self.config['doc_mark_size']
+
         if self.config['use_qemb']:
             doc_input_size += input_w_dim
 
@@ -81,6 +85,10 @@ class DrQA(nn.Module):
         if config['question_merge'] == 'self_attn':
             self.self_attn = LinearSeqAttn(question_hidden_size)
 
+        # Add document mark as feature in pointer computation
+        if config['doc_mark_in_pointer_computation']:
+            doc_hidden_size += self.config['doc_mark_size']
+
         # Bilinear attention for span start/end
         self.start_attn = BilinearSeqAttn(
             doc_hidden_size,
@@ -111,6 +119,7 @@ class DrQA(nn.Module):
         xd_emb = dropout(xd_emb, self.config['dropout_emb'], shared_axes=shared_axes, training=self.training)
         xd_mask = ex['xd_mask']
         xq_mask = ex['xq_mask']
+        xd_marks = ex['xd_marks']
 
         # Add attention-weighted question representation
         if self.config['use_qemb']:
@@ -118,6 +127,10 @@ class DrQA(nn.Module):
             drnn_input = torch.cat([xd_emb, xq_weighted_emb], 2)
         else:
             drnn_input = xd_emb
+
+        if self.config['doc_mark_embed']:
+            xd_marks_emb = self.doc_mark_embed(xd_marks)
+            drnn_input = torch.cat([drnn_input, xd_marks_emb], 2)
 
         if self.config["num_features"] > 0:
             drnn_input = torch.cat([drnn_input, ex['xd_f']], 2)
@@ -145,6 +158,10 @@ class DrQA(nn.Module):
         elif self.config['question_merge'] == 'self_attn':
             q_merge_weights = self.self_attn(question_hiddens.contiguous(), xq_mask)
         question_hidden = weighted_avg(question_hiddens, q_merge_weights)
+
+        # Add document mark as feature in pointer computation
+        if self.config['doc_mark_in_pointer_computation']:
+            doc_hiddens = torch.cat([doc_hiddens, xd_marks_emb], 2)
 
         # Predict start and end positions
         start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)
