@@ -75,6 +75,7 @@ class CoQADataset(Dataset):
                                 rationale))
                 qas['annotated_question']['word'] = temp
                 qas['next_span'] = paragraph['qas'][qid+1]['span']
+                qas['next_answer'] = paragraph['qas'][qid+1]['answer']
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
                 self.examples.append(qas)
@@ -101,11 +102,12 @@ class CoQADataset(Dataset):
         qas = self.examples[idx]
         paragraph = self.paragraphs[qas['paragraph_id']]
         question = qas['annotated_question']
-        answers = [qas['answer']]
+        # answers = [qas['answer']]
 
         sample = {'id': (paragraph['id'], qas['turn_id']),
                   'question': question,
-                  'answers': answers,
+                  # 'answers': answers,
+                  'next_answer': [qas['next_answer']],
                   'evidence': paragraph['annotated_context'],
                   # 'targets': qas['answer_span'],
                   # 'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
@@ -235,7 +237,8 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
                                                      ex['evidence_marks'], config))
         # sanitized_batch['targets'].append(ex['targets'])
         sanitized_batch['next_span'].append(ex['next_span'])
-        sanitized_batch['answers'].append(ex['answers'])
+        # sanitized_batch['answers'].append(ex['answers'])
+        sanitized_batch['next_answer'].append(ex['next_answer'])
         sanitized_batch['next_golden_span'].append(ex['next_golden_span'])
         sanitized_batch['evidence_marks'].append(ex['evidence_marks'])
         if 'id' in ex:
@@ -303,7 +306,8 @@ def vectorize_input(batch, config, training=True, device=None):
 
     torch.set_grad_enabled(training)
     example = {'batch_size': batch_size,
-               'answers': batch['answers'],
+               # 'answers': batch['answers'],
+               'next_answer': batch['next_answer'],
                'next_golden_span': batch['next_golden_span'],
                'xq': xq.to(device) if device else xq,
                'xq_mask': xq_mask.to(device) if device else xq_mask,
