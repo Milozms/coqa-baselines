@@ -153,9 +153,12 @@ class ModelHandler(object):
 
         test_f1 = self._dev_f1.mean()
         test_em = self._dev_em.mean()
+        test_f1_answer = self._dev_f1_answer.mean()
+        test_recall_answer = self._dev_recall_answer.mean()
 
         timer.finish()
-        print(self.report(self._n_test_batches, None, test_f1, test_em, mode='test'))
+        print(self.report(self._n_test_batches, None, test_f1, test_em, mode='test'),
+              test_f1_answer, test_recall_answer)
         self.logger.log([test_f1, test_em], Constants._TEST_EVAL_LOG)
         print("Finished Testing: {}".format(self.dirname))
 
@@ -195,7 +198,12 @@ class ModelHandler(object):
                                    'span_end': span[1]})
         return epoch_loss.mean(), output
 
-    def report(self, step, loss, f1, em, mode='train'):
+    def report(self, step, loss, f1, em, mode='train', f1_with_answer=None, recall_with_answer=None):
+        if f1_with_answer and recall_with_answer:
+            new_metrics = '\n f1 with answer = {:0.2f} | recall with answer = {:0.2f}'.format(
+                f1_with_answer, recall_with_answer)
+        else:
+            new_metrics = ''
         if mode == "train":
             format_str = "[train-{}] step: [{} / {}] | exs = {} | loss = {:0.4f} | f1 = {:0.2f} | em = {:0.2f}"
             return format_str.format(self._epoch, step, self._n_train_batches, self._n_train_examples, loss, f1, em)
@@ -204,7 +212,7 @@ class ModelHandler(object):
                     self._epoch, step, self._n_dev_batches, f1, em)
         elif mode == "test":
             return "[test] | test_exs = {} | step: [{} / {}] | f1 = {:0.2f} | em = {:0.2f}".format(
-                    self._n_test_examples, step, self._n_test_batches, f1, em)
+                    self._n_test_examples, step, self._n_test_batches, f1, em) + new_metrics
         else:
             raise ValueError('mode = {} not supported.' % mode)
 
