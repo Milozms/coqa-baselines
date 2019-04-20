@@ -56,7 +56,8 @@ class AverageMeter(object):
 
 def compute_eval_metric(eval_metric, predictions, ground_truths, cross_eval=True):
     fns = {'f1': compute_f1_score,
-           'em': compute_em_score}
+           'em': compute_em_score,
+           'recall': compute_recall_score}
 
     def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
         scores_for_ground_truths = []
@@ -91,6 +92,14 @@ def compute_f1_score(prediction, ground_truth):
     recall = 1.0 * num_same / len(ground_truth.split())
     f1 = (2 * precision * recall) / (precision + recall)
     return f1
+
+def compute_recall_score(prediction, ground_truth):
+    common = Counter(prediction.split()) & Counter(ground_truth.split())
+    num_same = sum(common.values())
+    if num_same == 0:
+        return 0
+    recall = 1.0 * num_same / len(ground_truth.split())
+    return recall
 
 
 def compute_em_score(prediction, ground_truth):

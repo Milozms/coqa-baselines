@@ -176,7 +176,8 @@ class Model(object):
 
         if (not update) or self.config['predict_train']:
             predictions, spans = self.extract_predictions(ex, score_s, score_e)
-            # output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['answers'])
+            output['f1_with_answer'] = compute_eval_metric('f1', predictions, ex['next_answer'])
+            output['recall_with_answer'] = compute_eval_metric('recall', predictions, ex['next_answer'])
             # golden_span = self.extract_golden(ex)
             # output['f1'], output['em'] = self.evaluate_predictions(predictions, golden_span)
             output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['next_golden_span'])
