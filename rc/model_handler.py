@@ -157,8 +157,8 @@ class ModelHandler(object):
         test_recall_answer = self._dev_recall_answer.mean()
 
         timer.finish()
-        print(self.report(self._n_test_batches, None, test_f1, test_em, mode='test'),
-              test_f1_answer, test_recall_answer)
+        print(self.report(self._n_test_batches, None, test_f1, test_em, mode='test',
+              f1_with_answer=test_f1_answer, recall_with_answer=test_recall_answer))
         self.logger.log([test_f1, test_em], Constants._TEST_EVAL_LOG)
         print("Finished Testing: {}".format(self.dirname))
 
