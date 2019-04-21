@@ -54,7 +54,9 @@ class Model(object):
                       'concat_rnn_layers', 'question_merge', 'use_qemb', 'f_qem', 'f_pos', 'f_ner',
                       'sum_loss', 'doc_self_attn', 'resize_rnn_input', 'span_dependency',
                       'fix_embeddings', 'dropout_rnn', 'dropout_emb', 'dropout_ff',
-                      'dropout_rnn_output', 'variational_dropout', 'word_dropout']
+                      'dropout_rnn_output', 'variational_dropout', 'word_dropout',
+                      'n_current', 'doc_mark_as_feature', 'doc_mark_embed', 'doc_mark_size',
+                      'input_with_answer', 'input_with_rationale', 'doc_mark_in_pointer_computation']
 
         # Load all saved fields.
         fname = os.path.join(saved_dir, Constants._SAVED_WEIGHTS_FILE)
