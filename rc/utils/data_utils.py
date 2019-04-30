@@ -113,7 +113,8 @@ class CoQADataset(Dataset):
                   # 'evidence_marks': get_marks_for_paragraph(qas, paragraph, self.config),
                   'evidence_marks': qas['paragraph_marks'],
                   'next_golden_span': [qas['next_golden_span']],
-                  'next_span': qas['next_span']}
+                  'next_span': qas['next_span'],
+                  'cur_span': qas['span']}
 
         if self.config['predict_raw_text']:
             sample['raw_evidence'] = paragraph['context']
@@ -237,6 +238,7 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
                                                      ex['evidence_marks'], config))
         # sanitized_batch['targets'].append(ex['targets'])
         sanitized_batch['next_span'].append(ex['next_span'])
+        sanitized_batch['cur_span'].append(ex['cur_span'])
         # sanitized_batch['answers'].append(ex['answers'])
         sanitized_batch['next_answer'].append(ex['next_answer'])
         sanitized_batch['next_golden_span'].append(ex['next_golden_span'])
@@ -294,6 +296,13 @@ def vectorize_input(batch, config, training=True, device=None):
     for i, _target in enumerate(batch['next_span']):
         next_span[i][0] = _target[0]
         next_span[i][1] = _target[1]
+
+    # current span
+    cur_span = torch.LongTensor(batch_size, 2)
+    for i, _target in enumerate(batch['cur_span']):
+        cur_span[i][0] = _target[0]
+        cur_span[i][1] = _target[1]
+
     if config['sum_loss']:  # For sum_loss "targets" acts as a mask rather than indices.
         targets = torch.ByteTensor(batch_size, max_d_len, 2).fill_(0)
         # for i, _targets in enumerate(batch['targets']):
@@ -316,7 +325,8 @@ def vectorize_input(batch, config, training=True, device=None):
                'xd_f': xd_f.to(device) if device else xd_f,
                'xd_marks': xd_marks.to(device) if device else xd_marks,
                'targets': targets.to(device) if device else targets,
-			   'next_span': next_span.to(device) if device else next_span}
+			   'next_span': next_span.to(device) if device else next_span,
+               'cur_span': cur_span.to(device) if device else cur_span}
 
     if config['predict_raw_text']:
         example['raw_evidence_text'] = batch['raw_evidence_text']
