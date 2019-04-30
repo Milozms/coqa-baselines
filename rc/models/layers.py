@@ -123,7 +123,6 @@ class SeqAttnMatch(nn.Module):
         super(SeqAttnMatch, self).__init__()
         if not identity:
             self.linear = inited_Linear(input_size, input_size)
-            _init_linear(self.linear)
         else:
             self.linear = None
 
@@ -168,7 +167,6 @@ class BilinearSeqAttn(nn.Module):
         super(BilinearSeqAttn, self).__init__()
         if not identity:
             self.linear = inited_Linear(y_size, x_size)
-            _init_linear(self.linear)
         else:
             self.linear = None
 
@@ -192,7 +190,6 @@ class LinearSeqAttn(nn.Module):
     def __init__(self, input_size):
         super(LinearSeqAttn, self).__init__()
         self.linear = inited_Linear(input_size, 1)
-        _init_linear(self.linear)
 
     def forward(self, x, x_mask):
         """
@@ -257,6 +254,7 @@ def _init_rnn(layer, init_func=nn.init.xavier_uniform_):
             param.data.fill_(0)
         elif 'weight' in name:
             init_func(param)
+
 
 def _init_linear(layer, init_func=nn.init.xavier_uniform_):
     init_func(layer.weight.data)
