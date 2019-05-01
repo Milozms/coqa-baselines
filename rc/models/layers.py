@@ -179,7 +179,7 @@ class BilinearSeqAttn(nn.Module):
         Wy = self.linear(y) if self.linear is not None else y
         xWy = x.bmm(Wy.unsqueeze(2)).squeeze(2)
         xWy.masked_fill_(x_mask, -float('inf'))
-        alpha = F.log_softmax(xWy, dim=-1)
+        alpha = F.softmax(xWy, dim=-1)   # modify here to get true probability
         return alpha
 
 
