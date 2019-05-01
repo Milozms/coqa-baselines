@@ -178,7 +178,7 @@ class Model(object):
             self.optimizer.step()
 
         preds = overlap_prob >= 0.5
-        acc_cnt = torch.sum(preds == ex['label'])
+        acc_cnt = torch.sum(preds.long() == ex['label'])
         output['em'] = acc_cnt.item() / ex['label'].size(0)
         return output
 
