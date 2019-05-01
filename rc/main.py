@@ -104,7 +104,7 @@ def get_args():
                        help='Whether to shuffle the examples during training.')
     group.add_argument('--max_answer_len', type=int, default=None, help='Set max answer length for decoding.')
     group.add_argument('--predict_train', type=str2bool, default=True, help='Whether to predict on training set.')
-    group.add_argument('--out_predictions', type=str2bool, default=True, help='Whether to output predictions.')
+    group.add_argument('--out_predictions', type=str2bool, default=False, help='Whether to output predictions.')
     group.add_argument('--predict_raw_text', type=str2bool, default=True,
                        help='Whether to use raw text and offsets for prediction.')
     group.add_argument('--save_params', type=str2bool, default=True, help='Whether to save params.')

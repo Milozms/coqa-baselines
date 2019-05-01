@@ -164,7 +164,7 @@ class Model(object):
         # Loss cannot be computed for test-time as we may not have targets
         if update:
             # Compute loss and accuracies
-            loss = F.binary_cross_entropy(overlap_prob, ex['label'])
+            loss = F.binary_cross_entropy(overlap_prob, ex['label'].float())
             output['loss'] = loss.item()
 
             # Clear gradients and run backward
