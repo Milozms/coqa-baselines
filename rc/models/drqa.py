@@ -166,9 +166,20 @@ class DrQA(nn.Module):
         # Predict start and end positions
         start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)
         if self.config['span_dependency']:
-            question_hidden = torch.cat([question_hidden, (doc_hiddens * start_scores.exp().unsqueeze(2)).sum(1)], 1)
+            question_hidden = torch.cat([question_hidden, (doc_hiddens * start_scores.unsqueeze(2)).sum(1)], 1)
+            # remove exp() for start_scores
         end_scores = self.end_attn(doc_hiddens, question_hidden, xd_mask)
+
+        prev_scores = torch.cumsum(start_scores, dim=1)  # p(start<=x)
+        after_scores = torch.flip(torch.cumsum(torch.flip(end_scores, [1]), dim=1), [1])  # p(end>=x)
+        in_scores = prev_scores * after_scores
+
+        not_overlap_score = torch.prod((1 - in_scores).masked_fill_(ex['cur_span_mask'], 1), dim=1)
+        # \prod_(in cur span) (1 - p(x_in))
+
+
 
         return {'score_s': start_scores,
                 'score_e': end_scores,
-                'targets': ex['targets']}
+                'targets': ex['targets'],
+                'overlap_prob': 1 - not_overlap_score}
