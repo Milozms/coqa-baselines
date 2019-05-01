@@ -154,6 +154,7 @@ class Model(object):
         # Run forward
         res = self.network(ex)
         score_s, score_e = res['score_s'], res['score_e']
+        overlap_prob = res['overlap_prob']
 
         output = {
             'f1': 0.0,
@@ -163,7 +164,7 @@ class Model(object):
         # Loss cannot be computed for test-time as we may not have targets
         if update:
             # Compute loss and accuracies
-            loss = self.compute_span_loss(score_s, score_e, res['targets'])
+            loss = F.binary_cross_entropy(overlap_prob, ex['label'])
             output['loss'] = loss.item()
 
             # Clear gradients and run backward
@@ -176,16 +177,9 @@ class Model(object):
             # Update parameters
             self.optimizer.step()
 
-        if (not update) or self.config['predict_train']:
-            predictions, spans = self.extract_predictions(ex, score_s, score_e)
-            output['f1_with_answer'] = compute_eval_metric('f1', predictions, ex['next_answer'])
-            output['recall_with_answer'] = compute_eval_metric('recall', predictions, ex['next_answer'])
-            # golden_span = self.extract_golden(ex)
-            # output['f1'], output['em'] = self.evaluate_predictions(predictions, golden_span)
-            output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['next_golden_span'])
-            if out_predictions:
-                output['predictions'] = predictions
-                output['spans'] = spans
+        preds = overlap_prob >= 0.5
+        acc_cnt = torch.sum(preds == ex['label'])
+        output['em'] = acc_cnt.item() / ex['label'].size(0)
         return output
 
     def compute_span_loss(self, score_s, score_e, targets):

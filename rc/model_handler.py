@@ -157,8 +157,7 @@ class ModelHandler(object):
         test_recall_answer = self._dev_recall_answer.mean()
 
         timer.finish()
-        print(self.report(self._n_test_batches, None, test_f1, test_em, mode='test',
-              f1_with_answer=test_f1_answer, recall_with_answer=test_recall_answer))
+        print(self.report(self._n_test_batches, None, test_f1, test_em, mode='test'))
         self.logger.log([test_f1, test_em], Constants._TEST_EVAL_LOG)
         print("Finished Testing: {}".format(self.dirname))
 
@@ -178,9 +177,9 @@ class ModelHandler(object):
             loss = res['loss']
             f1 = res['f1']
             em = res['em']
-            f1_answer = res['f1_with_answer']
-            recall_answer = res['recall_with_answer']
-            self._update_metrics(loss, f1, em, f1_answer, recall_answer, x_batch['batch_size'], training=training)
+            # f1_answer = res['f1_with_answer']
+            # recall_answer = res['recall_with_answer']
+            self._update_metrics(loss, f1, em, x_batch['batch_size'], training=training)
             epoch_loss.update(loss)
             if training:
                 self._n_train_examples += x_batch['batch_size']
@@ -223,7 +222,7 @@ class ModelHandler(object):
         end = " <<<<<<<<<<<<<<<< MODEL SUMMARY >>>>>>>>>>>>>>>> "
         return "\n".join([start, info, end])
 
-    def _update_metrics(self, loss, f1, em, f1_answer, recall_answer, batch_size, training=True):
+    def _update_metrics(self, loss, f1, em, batch_size, training=True):
         if training:
             self._train_loss.update(loss)
             self._train_f1.update(f1 * 100, batch_size)
@@ -231,8 +230,6 @@ class ModelHandler(object):
         else:
             self._dev_f1.update(f1 * 100, batch_size)
             self._dev_em.update(em * 100, batch_size)
-            self._dev_f1_answer.update(f1_answer * 100, batch_size)
-            self._dev_recall_answer.update(recall_answer * 100, batch_size)
 
     def _reset_metrics(self):
         self._train_loss.reset()
