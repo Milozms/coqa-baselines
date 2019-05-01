@@ -43,6 +43,7 @@ class CoQADataset(Dataset):
         self.examples = []
         self.vocab = Counter()
         dataset = read_json(filename)
+        trans_list = []
         for paragraph in dataset['data']:
             history = []
             for qid, qas in enumerate(paragraph['qas']):
@@ -78,6 +79,14 @@ class CoQADataset(Dataset):
                 qas['next_answer'] = paragraph['qas'][qid+1]['answer']
                 qas['next_golden_span'] = extract_next_golden_span(paragraph, qas, config)
                 qas['paragraph_marks'] = get_marks_for_paragraph(qas, paragraph, config)
+                s1, e1 = qas['span']
+                s2, e2 = qas['next_span']
+                if s1 > e2 or s2 > e1:
+                    label = 0  # not overlap
+                else:
+                    label = 1  # overlap
+                trans_list.append(label)
+                qas['label'] = label
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
                 paragraph_lens.append(len(paragraph['annotated_context']['word']))
@@ -93,6 +102,8 @@ class CoQADataset(Dataset):
         print('Paragraph length: avg = %.1f, max = %d' % (np.average(paragraph_lens), np.max(paragraph_lens)))
         print('Question length: avg = %.1f, max = %d' % (np.average(question_lens), np.max(question_lens)))
         print('Rationale length: avg = %.1f, max = %d' % (np.average(rationale_lens), np.max(rationale_lens)))
+        trans_counter = Counter(trans_list)
+        print(trans_counter)
         timer.finish()
 
     def __len__(self):
@@ -114,7 +125,8 @@ class CoQADataset(Dataset):
                   'evidence_marks': qas['paragraph_marks'],
                   'next_golden_span': [qas['next_golden_span']],
                   'next_span': qas['next_span'],
-                  'cur_span': qas['span']}
+                  'cur_span': qas['span'],
+                  'label': qas['label']}
 
         if self.config['predict_raw_text']:
             sample['raw_evidence'] = paragraph['context']
@@ -239,6 +251,7 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
         # sanitized_batch['targets'].append(ex['targets'])
         sanitized_batch['next_span'].append(ex['next_span'])
         sanitized_batch['cur_span'].append(ex['cur_span'])
+        sanitized_batch['label'].append(ex['label'])
         # sanitized_batch['answers'].append(ex['answers'])
         sanitized_batch['next_answer'].append(ex['next_answer'])
         sanitized_batch['next_golden_span'].append(ex['next_golden_span'])
@@ -299,9 +312,11 @@ def vectorize_input(batch, config, training=True, device=None):
 
     # current span
     cur_span = torch.LongTensor(batch_size, 2)
+    cur_span_mask = torch.ByteTensor(batch_size, max_d_len).fill_(1)
     for i, _target in enumerate(batch['cur_span']):
         cur_span[i][0] = _target[0]
         cur_span[i][1] = _target[1]
+        cur_span_mask[i, _target[0]:_target[1]+1].fill_(0)
 
     if config['sum_loss']:  # For sum_loss "targets" acts as a mask rather than indices.
         targets = torch.ByteTensor(batch_size, max_d_len, 2).fill_(0)
@@ -312,6 +327,8 @@ def vectorize_input(batch, config, training=True, device=None):
                 targets[i, e, 1] = 1
     else:
         targets = next_span
+
+    label = torch.tensor(batch['label'], dtype=torch.long)
 
     torch.set_grad_enabled(training)
     example = {'batch_size': batch_size,
@@ -326,7 +343,10 @@ def vectorize_input(batch, config, training=True, device=None):
                'xd_marks': xd_marks.to(device) if device else xd_marks,
                'targets': targets.to(device) if device else targets,
 			   'next_span': next_span.to(device) if device else next_span,
-               'cur_span': cur_span.to(device) if device else cur_span}
+               'cur_span': cur_span.to(device) if device else cur_span,
+               'cur_span_mask': cur_span_mask.to(device) if device else cur_span_mask,
+               'label': label.to(device) if device else label
+               }
 
     if config['predict_raw_text']:
         example['raw_evidence_text'] = batch['raw_evidence_text']
