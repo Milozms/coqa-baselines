@@ -180,7 +180,8 @@ class Model(object):
         preds = (overlap_prob >= 0.5)
         correct = torch.eq(preds.long(), ex['label'])
         acc_cnt = torch.sum(correct)
-        output['f1'] = compute_f1(preds, ex['label'])
+        _, _, output['f1'] = compute_f1(preds.long(), ex['label'])
+        _, _, output['f1_trans'] = compute_f1(1 - preds.long(), 1 - ex['label'])
         output['em'] = acc_cnt.item() / ex['label'].size(0)
         return output
 

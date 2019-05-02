@@ -177,6 +177,7 @@ class ModelHandler(object):
             loss = res['loss']
             f1 = res['f1']
             em = res['em']
+            f1_trans = res['f1_trans']
             # f1_answer = res['f1_with_answer']
             # recall_answer = res['recall_with_answer']
             self._update_metrics(loss, f1, em, x_batch['batch_size'], training=training)
