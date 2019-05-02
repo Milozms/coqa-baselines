@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 
 from word_model import WordModel
-from utils.eval_utils import compute_eval_metric
+from utils.eval_utils import compute_eval_metric, compute_f1
 from models.layers import multi_nll_loss
 from utils import constants as Constants
 from collections import Counter
@@ -177,8 +177,10 @@ class Model(object):
             # Update parameters
             self.optimizer.step()
 
-        preds = overlap_prob >= 0.5
-        acc_cnt = torch.sum(preds.long() == ex['label'])
+        preds = (overlap_prob >= 0.5)
+        correct = torch.eq(preds.long(), ex['label'])
+        acc_cnt = torch.sum(correct)
+        output['f1'] = compute_f1(preds, ex['label'])
         output['em'] = acc_cnt.item() / ex['label'].size(0)
         return output
 

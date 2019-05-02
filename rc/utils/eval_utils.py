@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import re
 import string
 from collections import Counter
@@ -104,3 +105,14 @@ def compute_recall_score(prediction, ground_truth):
 
 def compute_em_score(prediction, ground_truth):
     return 1.0 if prediction == ground_truth else 0.0
+
+
+def compute_f1(preds, label):
+    correct_golden = label & preds
+    correct_golden_cnt = torch.sum(correct_golden).item()
+    preds_cnt = torch.sum(preds).item()
+    golden_cnt = torch.sum(label).item()
+    prec = float(correct_golden_cnt / preds_cnt) if preds_cnt > 0 else 0.0
+    recall = float(correct_golden_cnt / golden_cnt) if golden_cnt > 0 else 0.0
+    f1 = 2.0 * prec * recall / (prec + recall) if prec + recall > 0 else 0.0
+    return prec, recall, f1
