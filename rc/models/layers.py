@@ -196,7 +196,7 @@ class LinearSeqScores(nn.Module):
         y = batch * h2        (question_hidden)
         x_mask = batch * len  (xd_mask)
         """
-        xWy = self.linear(x)
+        xWy = self.linear(x).squeeze(2)
         xWy.masked_fill_(x_mask, -float('inf'))
         alpha = F.log_softmax(xWy, dim=-1)   # modify here to get true probability
         return alpha
