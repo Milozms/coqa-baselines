@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .layers import SeqAttnMatch, StackedBRNN, LinearSeqAttn, BilinearSeqAttn
+from .layers import SeqAttnMatch, StackedBRNN, LinearSeqAttn, BilinearSeqAttn, LinearSeqScores
 from .layers import weighted_avg, uniform_weights, dropout, inited_Linear
 
 
@@ -90,15 +90,26 @@ class DrQA(nn.Module):
             doc_hidden_size += self.config['doc_mark_size']
 
         # Bilinear attention for span start/end
-        self.start_attn = BilinearSeqAttn(
-            doc_hidden_size,
-            question_hidden_size,
-        )
-        q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
-        self.end_attn = BilinearSeqAttn(
-            doc_hidden_size,
-            q_rep_size,
-        )
+        if config['final_attn_ques']:
+            self.start_attn = BilinearSeqAttn(
+                doc_hidden_size,
+                question_hidden_size,
+            )
+            q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
+            self.end_attn = BilinearSeqAttn(
+                doc_hidden_size,
+                q_rep_size,
+            )
+        else:
+            self.start_attn = LinearSeqScores(
+                doc_hidden_size,
+                question_hidden_size,
+            )
+            q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
+            self.end_attn = LinearSeqScores(
+                doc_hidden_size,
+                q_rep_size,
+            )
 
     def forward(self, ex):
         """Inputs:
