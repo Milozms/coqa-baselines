@@ -170,9 +170,13 @@ class DrQA(nn.Module):
             # remove exp() for start_scores
         end_scores = self.end_attn(doc_hiddens, question_hidden, xd_mask)
 
-        prev_scores = torch.cumsum(start_scores, dim=1)  # p(start<=x)
-        after_scores = torch.flip(torch.cumsum(torch.flip(end_scores, [1]), dim=1), [1])  # p(end>=x)
-        in_scores = prev_scores * after_scores
+        if self.config['predict_span']:
+            prev_scores = torch.cumsum(start_scores, dim=1)  # p(start<=x)
+            after_scores = torch.flip(torch.cumsum(torch.flip(end_scores, [1]), dim=1), [1])  # p(end>=x)
+            in_scores = prev_scores * after_scores
+        else:
+            in_scores = start_scores
+            # end_scores deprecated
 
         not_overlap_score = torch.prod((1 - in_scores).masked_fill_(ex['cur_span_mask'], 1), dim=1)
         # \prod_(in cur span) (1 - p(x_in))
