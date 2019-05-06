@@ -86,6 +86,7 @@ def get_args():
     group.add_argument('--doc_mark_in_pointer_computation', type=str2bool, default=False)
     group.add_argument('--doc_mark_as_multiplier_input', type=str2bool, default=False)
     group.add_argument('--doc_mark_as_multiplier_output', type=str2bool, default=False)
+    group.add_argument('--final_attn_ques', type=str2bool, default=True)
 
 
     # Optimizer

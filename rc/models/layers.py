@@ -182,6 +182,25 @@ class BilinearSeqAttn(nn.Module):
         alpha = F.softmax(xWy, dim=-1)   # modify here to get true probability
         return alpha
 
+class LinearSeqScores(nn.Module):
+    """A bilinear attention layer over a sequence X w.r.t y:
+    * o_i = softmax(W*x_i) for x_i in X.
+    """
+    def __init__(self, x_size, y_size, identity=False):
+        super(LinearSeqScores, self).__init__()
+        self.linear = inited_Linear(x_size, 1)
+
+    def forward(self, x, y, x_mask):
+        """
+        x = batch * len * h1  (doc_hiddens)
+        y = batch * h2        (question_hidden)
+        x_mask = batch * len  (xd_mask)
+        """
+        xWy = self.linear(x).squeeze(2)
+        xWy.masked_fill_(x_mask, -float('inf'))
+        alpha = F.softmax(xWy, dim=-1)   # modify here to get true probability
+        return alpha
+
 
 class LinearSeqAttn(nn.Module):
     """Self attention over a sequence:
